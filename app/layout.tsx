@@ -1,13 +1,14 @@
 import type React from "react"
-import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
-import { ThemeProvider } from "@/components/theme-provider"
+import type {Metadata, Viewport} from "next"
+import {Geist, Geist_Mono} from "next/font/google"
+import {Analytics} from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import {ThemeProvider} from "@/components/theme-provider"
 import "./globals.css"
 import QueryProvider from "@/providers/query-provider";
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const _geist = Geist({subsets: ["latin"]})
+const _geistMono = Geist_Mono({subsets: ["latin"]})
 
 export const metadata: Metadata = {
   title: "시장 이상징후 레이더 | Market Radar",
@@ -34,25 +35,26 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8f8fc" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1a2e" },
+    {media: "(prefers-color-scheme: light)", color: "#f8f8fc"},
+    {media: "(prefers-color-scheme: dark)", color: "#1a1a2e"},
   ],
 }
 
 export default function RootLayout({
-  children,
-}: Readonly<{
+                                     children,
+                                   }: Readonly<{
   children: React.ReactNode
 }>) {
   return (
-    <html lang="ko">
-      <body className="font-sans antialiased">
+    <html lang="ko" className="h-full overflow-x-hidden">
+      <body className="font-sans antialiased min-h-full overflow-x-hidden">
       <QueryProvider>
         <ThemeProvider>
-        {children}
+          {children}
         </ThemeProvider>
       </QueryProvider>
-        <Analytics />
+      <Analytics/>
+      <SpeedInsights/>
       </body>
     </html>
   )
