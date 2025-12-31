@@ -3,7 +3,6 @@
 import { Header } from "@/components/radar/header"
 import { MarketOverview } from "@/components/radar/market-overview"
 import { AnomalyFeed } from "@/components/radar/anomaly-feed"
-import { VolumeHeatmap } from "@/components/radar/volume-heatmap"
 import { PriceMovers } from "@/components/radar/price-movers"
 import { AlertSettings } from "@/components/radar/alert-settings"
 import { NotificationToast } from "@/components/radar/notification-toast"
@@ -18,19 +17,22 @@ export function MarketRadarDashboard() {
     <div className="min-h-screen bg-background">
       <Header selectedMarket={market} onMarketChange={setMarket} />
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="grid gap-6 lg:grid-cols-12">
-          {/* Left Column - Market Overview & Heatmap */}
-          <div className="lg:col-span-8 space-y-6">
+      {/* ✅ 모바일 여백 축소 */}
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        {/* ✅ 모바일 gap 축소 */}
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-12">
+          {/* Left Column */}
+          <div className="lg:col-span-8 space-y-4 sm:space-y-6 min-w-0">
             <MarketOverview market={market} />
             <SectorIndices />
-            <VolumeHeatmap market={market} />
             <PriceMovers market={market} />
             <MarketNewsFeed />
           </div>
 
-          <div className="lg:col-span-4">
-            <div className="sticky top-20 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto">
+          {/* Right Column */}
+          <div className="lg:col-span-4 min-w-0">
+            {/* ✅ 모바일에서는 sticky/스크롤 박스 OFF, lg부터 ON */}
+            <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
               <AnomalyFeed market={market} timeRange={timeRange} />
               <AlertSettings />
             </div>

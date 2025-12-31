@@ -62,55 +62,55 @@ export function Header({ selectedMarket, onMarketChange }: HeaderProps) {
 
             {/* Search & Actions */}
             <div className="flex items-center gap-2">
-              <Link href="/stocks" className="md:hidden">
-                <Button variant="ghost" size="icon">
-                  <List className="h-5 w-5" />
-                </Button>
-              </Link>
+              {/*<Link href="/stocks" className="md:hidden">*/}
+              {/*  <Button variant="ghost" size="icon">*/}
+              {/*    <List className="h-5 w-5" />*/}
+              {/*  </Button>*/}
+              {/*</Link>*/}
 
-              <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)} className="lg:hidden">
-                <Search className="h-5 w-5" />
-              </Button>
+              {/*<Button variant="ghost" size="icon" onClick={() => setIsOpen(true)} className="lg:hidden">*/}
+              {/*  <Search className="h-5 w-5" />*/}
+              {/*</Button>*/}
 
-              <div className="relative hidden lg:block">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="종목 검색..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onFocus={() => setIsOpen(true)}
-                  className="w-[200px] pl-9 bg-secondary border-border"
-                />
-                {isOpen && results.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50">
-                    {results.slice(0, 5).map((stock) => (
-                      <Link
-                        key={stock.ticker}
-                        href={`/stock/${stock.ticker}`}
-                        onClick={() => {
-                          setIsOpen(false)
-                          setQuery("")
-                        }}
-                        className="flex items-center justify-between px-3 py-2 hover:bg-secondary transition-colors"
-                      >
-                        <div>
-                          <span className="font-medium text-foreground">{stock.name}</span>
-                          <span className="ml-2 text-xs text-muted-foreground">{stock.ticker}</span>
-                        </div>
-                        <span
-                          className={cn(
-                            "text-sm font-medium",
-                            stock.changePercent >= 0 ? "text-chart-1" : "text-chart-2",
-                          )}
-                        >
-                          {stock.changePercent >= 0 ? "+" : ""}
-                          {stock.changePercent.toFixed(2)}%
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/*<div className="relative hidden lg:block">*/}
+              {/*  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />*/}
+              {/*  <Input*/}
+              {/*    placeholder="종목 검색..."*/}
+              {/*    value={query}*/}
+              {/*    onChange={(e) => setQuery(e.target.value)}*/}
+              {/*    onFocus={() => setIsOpen(true)}*/}
+              {/*    className="w-[200px] pl-9 bg-secondary border-border"*/}
+              {/*  />*/}
+              {/*  {isOpen && results.length > 0 && (*/}
+              {/*    <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50">*/}
+              {/*      {results.slice(0, 5).map((stock) => (*/}
+              {/*        <Link*/}
+              {/*          key={stock.ticker}*/}
+              {/*          href={`/stock/${stock.ticker}`}*/}
+              {/*          onClick={() => {*/}
+              {/*            setIsOpen(false)*/}
+              {/*            setQuery("")*/}
+              {/*          }}*/}
+              {/*          className="flex items-center justify-between px-3 py-2 hover:bg-secondary transition-colors"*/}
+              {/*        >*/}
+              {/*          <div>*/}
+              {/*            <span className="font-medium text-foreground">{stock.name}</span>*/}
+              {/*            <span className="ml-2 text-xs text-muted-foreground">{stock.ticker}</span>*/}
+              {/*          </div>*/}
+              {/*          <span*/}
+              {/*            className={cn(*/}
+              {/*              "text-sm font-medium",*/}
+              {/*              stock.changePercent >= 0 ? "text-chart-1" : "text-chart-2",*/}
+              {/*            )}*/}
+              {/*          >*/}
+              {/*            {stock.changePercent >= 0 ? "+" : ""}*/}
+              {/*            {stock.changePercent.toFixed(2)}%*/}
+              {/*          </span>*/}
+              {/*        </Link>*/}
+              {/*      ))}*/}
+              {/*    </div>*/}
+              {/*  )}*/}
+              {/*</div>*/}
 
               <ThemeToggle />
 
