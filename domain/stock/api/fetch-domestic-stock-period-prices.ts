@@ -6,16 +6,22 @@ import { toDomesticStockPriceResponse } from "@/domain/stock/mappers/domestic-st
 export async function fetchDomesticStockPeriodPrices(params: {
   symbol: string
   periodType: "D" | "W" | "M" | "Y" // 일/주/월/년 (너희 백엔드 규격에 맞춰 조정)
+  from: string // YYYY-MM-DD
+  to: string // YYYY-MM-DD
+
 }): Promise<DomesticStockPriceResponse> {
   const { symbol, periodType } = params
 
   const qs = new URLSearchParams({
     symbol,
     ...(periodType ? { periodType } : {})
-  }).toString()
+  })
+
+  if (params.from) qs.set("from", params.from)
+  if (params.to) qs.set("to", params.to)
 
   const data = await apiFetchClient<DomesticStockPriceResponseDto>(
-    `/stocks/v1/period-prices?${qs}`,
+    `/stocks/v1/period-prices?${qs.toString()}`,
     {
       method: "GET",
       credentials: "include",

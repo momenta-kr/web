@@ -21,7 +21,7 @@ import {
 type Period = "D" | "W" | "M" | "Y"
 
 export type CandlePoint = {
-  date: string // "20251226"
+  date: string // "YYYYMMDD"
   open: number
   high: number
   low: number
@@ -42,13 +42,15 @@ type Props = {
     dayHigh?: number | null
     dayLow?: number | null
   }
+  onRequestMore?: (fromIso: string, toIso: string) => void
+  isFetchingMore?: boolean
 }
 
 // ====== HEX ONLY UI COLORS ======
 const UI_FG = "#111827"
 const UI_MUTED = "#6B7280"
 const UI_BORDER = "#E5E7EB"
-const UI_PANEL_BG = "#FFFFFFF2" // white 95% (RRGGBBAA)
+const UI_PANEL_BG = "#FFFFFFF2"
 const UI_PANEL_SHADOW = "0 8px 24px rgba(0,0,0,0.12)"
 
 // ====== SERIES COLORS ======
@@ -81,11 +83,31 @@ function fmtYYYYMMDD(time: Time) {
   return `${yyyy}.${mm}.${dd}`
 }
 
+function toIsoDateUTC(d: Date) {
+  const yyyy = d.getUTCFullYear()
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0")
+  const dd = String(d.getUTCDate()).padStart(2, "0")
+  return `${yyyy}-${mm}-${dd}` // LocalDate.parse용
+}
+
+function addDaysUTC(date: Date, days: number) {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000)
+}
+
 function periodToVisibleBars(p: Period) {
   if (p === "D") return 30
   if (p === "W") return 60
   if (p === "M") return 140
   return 260
+}
+
+function periodToChunkDays(p: Period) {
+  // ✅ "최대 100개 제한"이어도 날짜 범위는 넉넉히 주고,
+  // 백엔드/KIS가 100개로 잘라주게 두는 게 안전함
+  if (p === "D") return 140
+  if (p === "W") return 380
+  if (p === "M") return 800
+  return 1200
 }
 
 function n0(x: unknown) {
@@ -110,18 +132,55 @@ function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v))
 }
 
-export default function LightweightStockChart({ data, period, height = 350, refLines }: Props) {
+export default function LightweightStockChart({
+                                                data,
+                                                period,
+                                                height = 350,
+                                                refLines,
+                                                onRequestMore,
+                                                isFetchingMore,
+                                              }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
 
-  // overlays
   const yearOverlayRef = useRef<HTMLDivElement | null>(null)
   const hoverOverlayRef = useRef<HTMLDivElement | null>(null)
   const hoverLineElRef = useRef<HTMLDivElement | null>(null)
 
   const chartRef = useRef<IChartApi | null>(null)
+
   const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null)
   const volRef = useRef<ISeriesApi<"Histogram"> | null>(null)
+  const ma5Ref = useRef<ISeriesApi<"Line"> | null>(null)
+  const ma20Ref = useRef<ISeriesApi<"Line"> | null>(null)
+  const ma60Ref = useRef<ISeriesApi<"Line"> | null>(null)
+  const ma120Ref = useRef<ISeriesApi<"Line"> | null>(null)
+
+  // ✅ 중복 호출 방지
+  const lastRequestKeyRef = useRef<string>("")
+  const lastRequestAtRef = useRef<number>(0)
+
+  // ✅ 프리펜드(과거 추가) 시 스크롤 유지용
+  const prevLenRef = useRef<number>(0)
+  const prevFirstDateRef = useRef<string>("")
+
+  // ✅ effect([]) 안에서 최신 props 쓰기
+  const latestRef = useRef<{
+    data: CandlePoint[]
+    period: Period
+    isFetchingMore?: boolean
+    onRequestMore?: (fromIso: string, toIso: string) => void
+  }>({ data: [], period, isFetchingMore: false, onRequestMore: undefined })
+
+  useEffect(() => {
+    latestRef.current = { data, period, isFetchingMore, onRequestMore }
+  }, [data, period, isFetchingMore, onRequestMore])
+
+  // ✅ period 바뀌면 중복키 초기화 (안 그러면 다음 로드가 막힐 수 있음)
+  useEffect(() => {
+    lastRequestKeyRef.current = ""
+    lastRequestAtRef.current = 0
+  }, [period])
 
   const candleData = useMemo<CandlestickData<UTCTimestamp>[]>(() => {
     return data.map((d) => ({
@@ -159,9 +218,26 @@ export default function LightweightStockChart({ data, period, height = 350, refL
     }
   }, [data])
 
+  const tickFmt = useMemo(() => {
+    return (time: Time) => {
+      const d = timeToUTCDate(time)
+      const yyyy = d.getUTCFullYear()
+      const mm = d.getUTCMonth() + 1
+      const dd = d.getUTCDate()
+
+      if (period === "Y") return `${yyyy}`
+      if (period === "M") return `${yyyy}`
+      if (period === "W") return `${mm}월`
+      if (dd === 1) return `${mm}월`
+      return `${dd}`
+    }
+  }, [period])
+
+  // 1) ✅ 차트/시리즈는 한 번만 생성
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
+    if (chartRef.current) return
 
     let disposed = false
     let raf = 0
@@ -192,34 +268,36 @@ export default function LightweightStockChart({ data, period, height = 350, refL
       grid: { vertLines: { visible: false }, horzLines: { visible: false } },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { labelVisible: false, color: UI_BORDER, width: 1, style: 0 },
+        vertLine: { labelVisible: true, color: UI_BORDER, width: 1, style: 0 },
         horzLine: { labelVisible: true, color: UI_BORDER, width: 1, style: 0 },
       },
       rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.08, bottom: 0.22 } },
       timeScale: {
         borderVisible: false,
-        rightOffset: 6,
+        rightOffset: 0,
         barSpacing: 8,
-        tickMarkFormatter: (time: Time) => {
-          const d = timeToUTCDate(time)
-          const yyyy = d.getUTCFullYear()
-          const mm = d.getUTCMonth() + 1
-          if (period === "Y") return `${yyyy}`
-          if (period === "M") return `${yyyy}`
-          return `${mm}월`
+        minBarSpacing: 2,
+        fixLeftEdge: false,
+        fixRightEdge: true,
+        rightBarStaysOnScroll: true,
+        lockVisibleTimeRangeOnResize: true,
+        tickMarkFormatter: tickFmt,
+      },
+      localization: {
+        priceFormatter: (p: number) => Math.round(p).toLocaleString("ko-KR"),
+        timeFormatter: (t: any) => {
+          const time: Time =
+            typeof t === "number" ? (t as Time) : typeof t === "string" ? (t as Time) : (t as Time)
+          return fmtYYYYMMDD(time)
         },
       },
-      localization: { priceFormatter: (p: number) => Math.round(p).toLocaleString("ko-KR") },
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
-      handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
+      handleScale: { axisPressedMouseMove: false, mouseWheel: true, pinch: true },
     })
 
-    // watermark(logo) 옵션 (지원 버전이면 꺼짐)
     try {
       ;(chart as any).applyOptions?.({ layout: { attributionLogo: false } })
-    } catch {
-      // ignore
-    }
+    } catch {}
 
     chartRef.current = chart
 
@@ -233,7 +311,6 @@ export default function LightweightStockChart({ data, period, height = 350, refL
       lastValueVisible: true,
       priceLineVisible: true,
     })
-    candle.setData(candleData)
 
     const volume = chart.addSeries(HistogramSeries, {
       priceScaleId: "",
@@ -242,43 +319,18 @@ export default function LightweightStockChart({ data, period, height = 350, refL
       priceLineVisible: false,
     })
     volume.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } })
-    volume.setData(volumeData)
 
     const ma5 = chart.addSeries(LineSeries, { lineWidth: 2, color: MA5_COLOR, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false })
-    ma5.setData(maData.ma5)
-
     const ma20 = chart.addSeries(LineSeries, { lineWidth: 2, color: MA20_COLOR, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false })
-    ma20.setData(maData.ma20)
-
     const ma60 = chart.addSeries(LineSeries, { lineWidth: 2, color: MA60_COLOR, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false })
-    ma60.setData(maData.ma60)
-
     const ma120 = chart.addSeries(LineSeries, { lineWidth: 2, color: MA120_COLOR, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false })
-    ma120.setData(maData.ma120)
 
     candleRef.current = candle
     volRef.current = volume
-
-    // reference lines
-    if (refLines?.prevClose != null) {
-      candle.createPriceLine({ price: refLines.prevClose, color: UI_BORDER, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "전일" })
-    }
-    if (refLines?.dayHigh != null) {
-      candle.createPriceLine({ price: refLines.dayHigh, color: UI_MUTED, lineWidth: 1, lineStyle: 3, axisLabelVisible: false, title: "고" })
-    }
-    if (refLines?.dayLow != null) {
-      candle.createPriceLine({ price: refLines.dayLow, color: UI_MUTED, lineWidth: 1, lineStyle: 3, axisLabelVisible: false, title: "저" })
-    }
-
-    // initial range
-    const visible = periodToVisibleBars(period)
-    const total = candleData.length
-    if (total > 0) {
-      const from = Math.max(0, total - visible)
-      chart.timeScale().setVisibleLogicalRange({ from, to: total + 2 })
-    } else {
-      chart.timeScale().fitContent()
-    }
+    ma5Ref.current = ma5
+    ma20Ref.current = ma20
+    ma60Ref.current = ma60
+    ma120Ref.current = ma120
 
     // ----- Tooltip -----
     const tooltip = tooltipRef.current
@@ -293,7 +345,6 @@ export default function LightweightStockChart({ data, period, height = 350, refL
       tooltip.style.opacity = "0"
     }
 
-    // ----- Hover vertical line overlay -----
     const setHoverX = (x: number | null) => {
       const line = hoverLineElRef.current
       if (!line) return
@@ -305,11 +356,8 @@ export default function LightweightStockChart({ data, period, height = 350, refL
       line.style.left = `${x}px`
     }
 
-    // ✅ tooltip을 마우스(크로스헤어) 위치로 이동
     const moveTooltipToPoint = (point: { x: number; y: number }) => {
       if (!tooltip) return
-
-      // 먼저 렌더링된 사이즈를 기준으로 화면 밖 방지
       const tw = tooltip.offsetWidth || 180
       const th = tooltip.offsetHeight || 100
       const w = el.clientWidth
@@ -318,10 +366,8 @@ export default function LightweightStockChart({ data, period, height = 350, refL
       const pad = 12
       let left = point.x + pad
       let top = point.y + pad
-
       left = clamp(left, 0, Math.max(0, w - tw))
       top = clamp(top, 0, Math.max(0, h - th))
-
       tooltip.style.left = `${left}px`
       tooltip.style.top = `${top}px`
     }
@@ -355,13 +401,8 @@ export default function LightweightStockChart({ data, period, height = 350, refL
       const low = n0(c.low)
       const close = n0(c.close)
 
-      const isUp = close >= open
-      const priceColor = isUp ? UP_COLOR : DOWN_COLOR
-
-      const prevClose = refLines?.prevClose != null ? Number(refLines.prevClose) : null
-      const diff = prevClose != null ? close - prevClose : null
-      const diffPct = prevClose != null && prevClose > 0 ? (diff! / prevClose) * 100 : null
-
+      const isUpCandle = close >= open
+      const candleColor = isUpCandle ? UP_COLOR : DOWN_COLOR
       const vol = v?.value ?? 0
 
       const row = (label: string, value: string, strong = false, valueColor?: string) => `
@@ -370,7 +411,6 @@ export default function LightweightStockChart({ data, period, height = 350, refL
           <span style="font-weight:${strong ? 800 : 600}; color:${valueColor ?? UI_FG};">${value}</span>
         </div>
       `
-
       const maRow = (label: string, val: any, color: string) =>
         row(label, val?.value == null ? "-" : fmtNum(val.value, 0), false, color)
 
@@ -378,26 +418,14 @@ export default function LightweightStockChart({ data, period, height = 350, refL
         <div style="min-width:180px; font-size:12px; line-height:1.2;">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
             <div style="font-weight:800; color:${UI_FG};">${fmtYYYYMMDD(param.time)}</div>
-            <div style="font-weight:900; color:${priceColor};">${fmtNum(close, 0)}</div>
+            <div style="font-weight:900; color:${candleColor};">${fmtNum(close, 0)}</div>
           </div>
-
           <div style="margin-top:6px; padding-top:6px; border-top:1px solid ${UI_BORDER};">
             ${row("시", fmtNum(open, 0))}
             ${row("고", fmtNum(high, 0))}
             ${row("저", fmtNum(low, 0))}
             ${row("거래량", fmtVol(vol))}
-            ${
-        diff == null
-          ? ""
-          : row(
-            "전일대비",
-            `${diff >= 0 ? "+" : ""}${fmtNum(diff, 0)} (${diffPct == null ? "-" : diffPct.toFixed(2)}%)`,
-            true,
-            diff >= 0 ? UP_COLOR : DOWN_COLOR,
-          )
-      }
           </div>
-
           <div style="margin-top:6px; padding-top:6px; border-top:1px solid ${UI_BORDER};">
             ${maRow("MA5", m5, MA5_COLOR)}
             ${maRow("MA20", m20, MA20_COLOR)}
@@ -406,14 +434,84 @@ export default function LightweightStockChart({ data, period, height = 350, refL
           </div>
         </div>
       `
-
       setTooltipHtml(html)
-
-      // ✅ DOM 업데이트 후 위치 계산이 더 정확함
       requestAnimationFrame(() => moveTooltipToPoint(param.point!))
     }
 
     chart.subscribeCrosshairMove(onCrosshairMove)
+
+    // ✅ 실제 요청 로직
+    const maybeRequestMore = () => {
+      const latest = latestRef.current
+      if (!latest.onRequestMore) return
+      if (latest.isFetchingMore) return
+      if (disposed) return
+      if (!latest.data?.length) return
+
+      const now = Date.now()
+      if (now - lastRequestAtRef.current < 700) return
+
+      const earliestYmd = latest.data[0]?.date // "YYYYMMDD"
+      if (!earliestYmd || earliestYmd.length !== 8) return
+
+      const earliestDate = new Date(yyyymmddToUTCSeconds(earliestYmd) * 1000)
+
+      const toDate = addDaysUTC(earliestDate, -1)
+      const chunk = periodToChunkDays(latest.period)
+      const fromDate = addDaysUTC(toDate, -chunk)
+
+      const toIso = String(toIsoDateUTC(toDate))     // ✅ 항상 string
+      const fromIso = String(toIsoDateUTC(fromDate)) // ✅ 항상 string
+
+      // ✅ 중복 방지는 toIso 기준
+      if (toIso === lastRequestKeyRef.current) return
+      lastRequestKeyRef.current = toIso
+      lastRequestAtRef.current = now
+
+      console.log("[load-more]", { fromIso, toIso, earliestYmd, period: latest.period })
+      latest.onRequestMore(fromIso, toIso)
+    }
+
+
+    // ✅ “구독 API가 없어서” 안 걸리는 케이스 방지: available subscriber로 fallback
+    const ts: any = chart.timeScale()
+    const onAnyVisibleChange = () => {
+
+      const latest = latestRef.current
+
+      console.log("visible change")
+
+      // ✅ 현재 로딩된 데이터 중 "가장 오래된 봉"
+      const earliestTime = yyyymmddToUTCSeconds(latest.data[0].date)
+
+      // ✅ 그 봉이 화면상 어디쯤 있는지 좌표로 판단
+      const x = chart.timeScale().timeToCoordinate(earliestTime)
+
+      // timeToCoordinate가 null이면 아직 화면에 안 들어온 것(= 더 왼쪽에 있음)
+      if (x == null) return
+
+      // ✅ 왼쪽 여백 때문에 0까지는 못 가더라도, 일정 px 이내면 "끝"으로 판단
+      const LEFT_THRESHOLD_PX = 120 // 60~120 사이로 취향 조절
+      if (x <= LEFT_THRESHOLD_PX) {
+        maybeRequestMore()
+      }
+    }
+
+
+    let unsubscribeVisible: (() => void) | null = null
+
+    if (typeof ts?.subscribeVisibleLogicalRangeChange === "function") {
+      ts.subscribeVisibleLogicalRangeChange(onAnyVisibleChange)
+      unsubscribeVisible = () => ts.unsubscribeVisibleLogicalRangeChange(onAnyVisibleChange)
+    } else if (typeof ts?.subscribeVisibleTimeRangeChange === "function") {
+      // logical 구독이 없는 빌드/버전용 fallback
+      ts.subscribeVisibleTimeRangeChange(onAnyVisibleChange)
+      unsubscribeVisible = () => ts.unsubscribeVisibleTimeRangeChange(onAnyVisibleChange)
+      // console.warn("[chart] subscribeVisibleLogicalRangeChange not found -> fallback to subscribeVisibleTimeRangeChange")
+    } else {
+      // 이것까지 없으면 라이브러리 버전이 너무 다르거나 잘못된 번들
+      console.warn("[chart] no visible range subscription API found. Upgrade lightweight-charts or check import.")
+    }
 
     // ----- Year guides overlay -----
     const drawYearGuides = () => {
@@ -422,15 +520,17 @@ export default function LightweightStockChart({ data, period, height = 350, refL
       if (!overlay) return
 
       overlay.innerHTML = ""
-      if (period === "Y") return
-      if (!data?.length) return
+
+      const latest = latestRef.current
+      if (latest.period === "Y") return
+      if (!latest.data?.length) return
 
       const marks: { t: UTCTimestamp; year: string }[] = []
-      for (let i = 0; i < data.length; i++) {
-        const curY = data[i].date.slice(0, 4)
-        const prevY = i > 0 ? data[i - 1].date.slice(0, 4) : null
+      for (let i = 0; i < latest.data.length; i++) {
+        const curY = latest.data[i].date.slice(0, 4)
+        const prevY = i > 0 ? latest.data[i - 1].date.slice(0, 4) : null
         if (i === 0 || (prevY && prevY !== curY)) {
-          marks.push({ t: yyyymmddToUTCSeconds(data[i].date), year: curY })
+          marks.push({ t: yyyymmddToUTCSeconds(latest.data[i].date), year: curY })
         }
       }
 
@@ -439,12 +539,12 @@ export default function LightweightStockChart({ data, period, height = 350, refL
 
       const frag = document.createDocumentFragment()
       for (const m of marks) {
-        const x = chart.timeScale().timeToCoordinate(m.t)
-        if (x == null) continue
+        const xx = chart.timeScale().timeToCoordinate(m.t)
+        if (xx == null) continue
 
         const line = document.createElement("div")
         line.style.position = "absolute"
-        line.style.left = `${x}px`
+        line.style.left = `${xx}px`
         line.style.top = `0px`
         line.style.width = "2px"
         line.style.height = `${h}px`
@@ -454,7 +554,7 @@ export default function LightweightStockChart({ data, period, height = 350, refL
 
         const label = document.createElement("div")
         label.style.position = "absolute"
-        label.style.left = `${x + 6}px`
+        label.style.left = `${xx + 6}px`
         label.style.top = `10px`
         label.style.fontSize = "18px"
         label.style.fontWeight = "800"
@@ -484,38 +584,90 @@ export default function LightweightStockChart({ data, period, height = 350, refL
     })
     ro.observe(el)
 
-    scheduleGuides()
-
     return () => {
       disposed = true
       cancelAnimationFrame(raf)
-
       ro.disconnect()
+
       chart.timeScale().unsubscribeVisibleTimeRangeChange(scheduleGuides)
       chart.unsubscribeCrosshairMove(onCrosshairMove)
-
-      setHoverX(null)
-      hideTooltip()
+      unsubscribeVisible?.()
 
       chart.remove()
       chartRef.current = null
       candleRef.current = null
       volRef.current = null
+      ma5Ref.current = null
+      ma20Ref.current = null
+      ma60Ref.current = null
+      ma120Ref.current = null
     }
-  }, [candleData, volumeData, maData, height, period, data, refLines?.prevClose, refLines?.dayHigh, refLines?.dayLow])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 2) ✅ period/height 같은 옵션 변경은 applyOptions로만
+  useEffect(() => {
+    const chart = chartRef.current
+    const el = containerRef.current
+    if (!chart || !el) return
+    chart.applyOptions({
+      height,
+      width: el.clientWidth,
+      timeScale: { tickMarkFormatter: tickFmt },
+    })
+  }, [height, tickFmt])
+
+  // 3) ✅ 데이터 변경 시 setData만 + 프리펜드면 스크롤 유지
+  useEffect(() => {
+    const chart = chartRef.current
+    const candle = candleRef.current
+    const volume = volRef.current
+    const ma5 = ma5Ref.current
+    const ma20 = ma20Ref.current
+    const ma60 = ma60Ref.current
+    const ma120 = ma120Ref.current
+    if (!chart || !candle || !volume || !ma5 || !ma20 || !ma60 || !ma120) return
+
+    const ts: any = chart.timeScale()
+    const prevLen = prevLenRef.current
+    const prevFirst = prevFirstDateRef.current
+    const newLen = candleData.length
+    const newFirst = data[0]?.date ?? ""
+
+    const vr = ts?.getVisibleLogicalRange?.() ?? null
+
+    candle.setData(candleData)
+    volume.setData(volumeData)
+    ma5.setData(maData.ma5)
+    ma20.setData(maData.ma20)
+    ma60.setData(maData.ma60)
+    ma120.setData(maData.ma120)
+
+    // ✅ 초기 표시
+    if (prevLen === 0 && newLen > 0) {
+      const visible = periodToVisibleBars(period)
+      const from = Math.max(0, newLen - visible)
+      chart.timeScale().setVisibleLogicalRange({ from, to: newLen - 1 })
+    }
+
+    // ✅ 과거 데이터 프리펜드 시 현재 보던 구간 유지
+    if (vr && prevLen > 0 && newLen > prevLen && newFirst && prevFirst && newFirst !== prevFirst) {
+      const delta = newLen - prevLen
+      chart.timeScale().setVisibleLogicalRange({
+        from: vr.from + delta,
+        to: vr.to + delta,
+      })
+    }
+
+    prevLenRef.current = newLen
+    prevFirstDateRef.current = newFirst
+  }, [candleData, volumeData, maData, data, period])
 
   return (
     <div className="relative w-full" style={{ height }}>
-      {/* ✅ 차트 캔버스: zIndex 0 */}
       <div ref={containerRef} className="h-full w-full" style={{ position: "relative", zIndex: 0 }} />
-
-      {/* year guides: 위 레이어 */}
       <div ref={yearOverlayRef} className="pointer-events-none absolute inset-0" style={{ zIndex: 10 }} />
-
-      {/* hover line: 위 레이어 */}
       <div ref={hoverOverlayRef} className="pointer-events-none absolute inset-0" style={{ zIndex: 20 }} />
-
-      {/* ✅ tooltip: 최상단 + 커서 따라다님 */}
       <div
         ref={tooltipRef}
         className="pointer-events-none absolute"
@@ -523,7 +675,7 @@ export default function LightweightStockChart({ data, period, height = 350, refL
           left: 0,
           top: 0,
           opacity: 0,
-          zIndex: 30, // ✅ 차트 위로
+          zIndex: 30,
           transition: "opacity 120ms ease",
           border: `1px solid ${UI_BORDER}`,
           background: UI_PANEL_BG,

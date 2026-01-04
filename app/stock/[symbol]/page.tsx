@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Star, TrendingUp, TrendingDown } from "lucide-react"
@@ -12,8 +12,10 @@ import { useAnomalies, useMarketState } from "@/lib/store"
 
 import { NewsAnalysis } from "@/components/stock/news-analysis"
 import { InvestorTrends } from "@/components/stock/investor-trends"
-import { useDomesticStockPeriodPrices } from "@/domain/stock/queries/useDomesticStockPeriodPrices"
 import LightweightStockChart from "@/components/stock/light-weight-stock-chart"
+
+import { useDomesticStockPeriodPrices } from "@/domain/stock/queries/useDomesticStockPeriodPrices"
+import { fetchDomesticStockPeriodPrices } from "@/domain/stock/api/fetch-domestic-stock-period-prices"
 
 type Period = "D" | "W" | "M" | "Y"
 
@@ -107,6 +109,25 @@ function MovingAverageLegend() {
   )
 }
 
+/** API 응답의 날짜 필드가 businessDate / stck_bsop_date 등으로 오므로 안전하게 뽑기 */
+function pickYmd(p: any): string {
+  return String(p?.businessDate ?? p?.stck_bsop_date ?? p?.date ?? "")
+}
+
+function mergePricesDesc(prev: any[], next: any[]) {
+  const map = new Map<string, any>()
+  for (const it of prev ?? []) {
+    const d = pickYmd(it)
+    if (d && d.length === 8) map.set(d, it)
+  }
+  for (const it of next ?? []) {
+    const d = pickYmd(it)
+    if (d && d.length === 8) map.set(d, it)
+  }
+  // 최신 -> 과거(내림차순)
+  return Array.from(map.values()).sort((a, b) => pickYmd(b).localeCompare(pickYmd(a)))
+}
+
 export default function StockDetailPage() {
   const params = useParams()
   const symbol = params.symbol as string
@@ -117,6 +138,10 @@ export default function StockDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false)
   const [chartPeriod, setChartPeriod] = useState<Period>("D")
 
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
+  const [mergedPrices, setMergedPrices] = useState<any[]>([])
+  const [mergedSnapshot, setMergedSnapshot] = useState<any>(null)
+
   const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useDomesticStockPeriodPrices({
     symbol,
     periodType: chartPeriod,
@@ -125,8 +150,47 @@ export default function StockDetailPage() {
   const snapshot = (data as any)?.snapshot ?? null
   const prices = (data as any)?.prices ?? []
 
+  useEffect(() => {
+    if (!data) return
+    setMergedSnapshot(snapshot)
+    setMergedPrices(prices)
+  }, [symbol, chartPeriod, dataUpdatedAt]) // 새 응답 반영
+
+  /** ✅ from은 "시작일(YYYY-MM-dd)"로 백엔드에 보냄 (LocalDate.parse 맞춤) */
+  const handleRequestMore = async (fromIso: string, toIso: string) => {
+    if (isFetchingMore) return
+
+    // ✅ 여기서 return으로 막아버리면 네트워크 탭에 아예 안 뜸
+    //    최소한 로그라도 찍고 싶은 경우:
+    if (!fromIso || fromIso.length !== 10 || !toIso || toIso.length !== 10) {
+      console.warn("[handleRequestMore] invalid range", { fromIso, toIso })
+      return
+    }
+
+    console.log("Requesting more data:", { fromIso, toIso })
+
+    try {
+      setIsFetchingMore(true)
+
+      const more = await fetchDomesticStockPeriodPrices({
+        symbol,
+        periodType: chartPeriod,
+        from: fromIso, // ✅ 항상 채워서 전달
+        to: toIso,     // ✅ 항상 채워서 전달
+      } as any)
+
+      const moreSnapshot = (more as any)?.snapshot ?? null
+      const morePrices = (more as any)?.prices ?? []
+
+      setMergedSnapshot((prev) => prev ?? moreSnapshot)
+      setMergedPrices((prev) => mergePricesDesc(prev, morePrices))
+    } finally {
+      setIsFetchingMore(false)
+    }
+  }
+
   const stock = useMemo(() => {
-    const s = snapshot
+    const s = mergedSnapshot ?? snapshot
     return {
       name: s?.stockName ?? "종목",
       ticker: s?.shortStockCode ?? symbol,
@@ -142,15 +206,18 @@ export default function StockDetailPage() {
       marketCap: s?.marketCap != null ? formatKoreanMoney(s.marketCap) : "-",
       volume: s?.accumulatedVolume ?? 0,
     }
-  }, [snapshot, symbol])
+  }, [mergedSnapshot, snapshot, symbol])
 
   const priceHistory = useMemo<CandlePoint[]>(() => {
-    if (!prices.length) return []
+    const src = mergedPrices ?? []
+    if (!src.length) return []
 
-    const asc = [...prices].reverse()
+    // API가 최신->과거면 reverse 해서 asc로 만든 뒤 MA 계산
+    const asc = [...src].reverse()
+
     const mapped: CandlePoint[] = asc
       .map((p: any) => {
-        const d = String(p.businessDate ?? p.stck_bsop_date ?? "")
+        const d = pickYmd(p)
         if (!d || d.length !== 8) return null
         return {
           date: d,
@@ -163,7 +230,7 @@ export default function StockDetailPage() {
       })
       .filter(Boolean) as CandlePoint[]
 
-    // 누적 거래량 -> 봉별 거래량(안전)
+    // 누적 거래량 -> 봉별 거래량
     for (let i = 1; i < mapped.length; i++) {
       const prev = mapped[i - 1].volume
       const cur = mapped[i].volume
@@ -171,7 +238,7 @@ export default function StockDetailPage() {
       mapped[i].volume = diff >= 0 ? diff : cur
     }
 
-    // date 중복 제거
+    // date 중복 제거 + asc 정렬
     const m = new Map<string, CandlePoint>()
     for (const row of mapped) m.set(row.date, row)
     const unique = Array.from(m.values()).sort((a, b) => a.date.localeCompare(b.date))
@@ -184,33 +251,42 @@ export default function StockDetailPage() {
     const ma120 = rollingMA(closes, 120)
 
     return unique.map((d, i) => ({ ...d, ma5: ma5[i], ma20: ma20[i], ma60: ma60[i], ma120: ma120[i] }))
-  }, [prices])
+  }, [mergedPrices])
 
   const stockAnomalies = useMemo(
     () => (anomalies ?? []).filter((a) => a.ticker === symbol).slice(0, 5),
     [anomalies, symbol],
   )
 
-  const isPositive = (snapshot?.changeRate ?? 0) >= 0
-  const todayPos = calcTodayPosition(snapshot?.currentPrice ?? null, snapshot?.lowPrice ?? null, snapshot?.highPrice ?? null)
-
-  const spread = snapshot?.askPrice != null && snapshot?.bidPrice != null ? snapshot.askPrice - snapshot.bidPrice : null
-  const spreadPct =
-    spread != null && snapshot?.currentPrice != null && snapshot.currentPrice > 0 ? (spread / snapshot.currentPrice) * 100 : null
-
-  const financialMetrics = useMemo(
-    () => [
-      { label: "PER", value: snapshot?.per != null ? `${Number(snapshot.per).toFixed(2)}배` : "-" },
-      { label: "PBR", value: snapshot?.pbr != null ? `${Number(snapshot.pbr).toFixed(2)}배` : "-" },
-      { label: "EPS", value: snapshot?.eps != null ? `${Number(snapshot.eps).toLocaleString()}원` : "-" },
-      { label: "상장주식수", value: snapshot?.listedShares != null ? formatCompact(snapshot.listedShares) : "-" },
-      { label: "액면가", value: snapshot?.faceValue != null ? `${formatNumber(snapshot.faceValue, 0)}원` : "-" },
-      { label: "자본금", value: snapshot?.capitalAmount != null ? formatKoreanMoney(snapshot.capitalAmount) : "-" },
-      { label: "융자잔고비율", value: snapshot?.marginLoanRate != null ? `${formatNumber(snapshot.marginLoanRate, 2)}%` : "-" },
-      { label: "회전율", value: snapshot?.turnoverRate != null ? `${formatNumber(snapshot.turnoverRate, 2)}%` : "-" },
-    ],
-    [snapshot],
+  const isPositive = ((mergedSnapshot ?? snapshot)?.changeRate ?? 0) >= 0
+  const todayPos = calcTodayPosition(
+    (mergedSnapshot ?? snapshot)?.currentPrice ?? null,
+    (mergedSnapshot ?? snapshot)?.lowPrice ?? null,
+    (mergedSnapshot ?? snapshot)?.highPrice ?? null,
   )
+
+  const spread =
+    (mergedSnapshot ?? snapshot)?.askPrice != null && (mergedSnapshot ?? snapshot)?.bidPrice != null
+      ? (mergedSnapshot ?? snapshot).askPrice - (mergedSnapshot ?? snapshot).bidPrice
+      : null
+  const spreadPct =
+    spread != null && (mergedSnapshot ?? snapshot)?.currentPrice != null && (mergedSnapshot ?? snapshot).currentPrice > 0
+      ? (spread / (mergedSnapshot ?? snapshot).currentPrice) * 100
+      : null
+
+  const financialMetrics = useMemo(() => {
+    const s = mergedSnapshot ?? snapshot
+    return [
+      { label: "PER", value: s?.per != null ? `${Number(s.per).toFixed(2)}배` : "-" },
+      { label: "PBR", value: s?.pbr != null ? `${Number(s.pbr).toFixed(2)}배` : "-" },
+      { label: "EPS", value: s?.eps != null ? `${Number(s.eps).toLocaleString()}원` : "-" },
+      { label: "상장주식수", value: s?.listedShares != null ? formatCompact(s.listedShares) : "-" },
+      { label: "액면가", value: s?.faceValue != null ? `${formatNumber(s.faceValue, 0)}원` : "-" },
+      { label: "자본금", value: s?.capitalAmount != null ? formatKoreanMoney(s.capitalAmount) : "-" },
+      { label: "융자잔고비율", value: s?.marginLoanRate != null ? `${formatNumber(s.marginLoanRate, 2)}%` : "-" },
+      { label: "회전율", value: s?.turnoverRate != null ? `${formatNumber(s.turnoverRate, 2)}%` : "-" },
+    ]
+  }, [mergedSnapshot, snapshot])
 
   if (isError) {
     return (
@@ -236,11 +312,11 @@ export default function StockDetailPage() {
     )
   }
 
-  if (!data || !snapshot) return null
+  if (!data || !(mergedSnapshot ?? snapshot)) return null
+  const s0 = mergedSnapshot ?? snapshot
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ✅ 헤더 2줄: 1) 종목/코드  2) 시장/업데이트 */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto w-full max-w-7xl px-4">
           <div className="flex h-16 items-center justify-between">
@@ -252,7 +328,6 @@ export default function StockDetailPage() {
               </Link>
 
               <div className="min-w-0">
-                {/* 1줄: 종목명 + 종목코드 */}
                 <div className="flex items-center gap-2 min-w-0">
                   <h1 className="truncate text-lg sm:text-xl font-bold text-foreground">{stock.name}</h1>
                   <Badge variant="secondary" className="shrink-0">
@@ -260,7 +335,6 @@ export default function StockDetailPage() {
                   </Badge>
                 </div>
 
-                {/* 2줄: 시장 + 업데이트 */}
                 <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
                   <Badge variant="outline" className="h-5 px-2 text-[11px]">
                     {stock.market}
@@ -306,10 +380,11 @@ export default function StockDetailPage() {
 
                     <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
                       <span className="rounded-md bg-secondary/60 px-2 py-1">
-                        오늘 위치 <span className="text-foreground font-medium">{todayPos == null ? "-" : `${Math.round(todayPos)}%`}</span>
+                        오늘 위치{" "}
+                        <span className="text-foreground font-medium">{todayPos == null ? "-" : `${Math.round(todayPos)}%`}</span>
                       </span>
                       <span className="rounded-md bg-secondary/60 px-2 py-1">
-                        매수/매도 {formatNumber(snapshot.bidPrice, 0)} / {formatNumber(snapshot.askPrice, 0)}
+                        매수/매도 {formatNumber(s0.bidPrice, 0)} / {formatNumber(s0.askPrice, 0)}
                       </span>
                       <span className="rounded-md bg-secondary/60 px-2 py-1">
                         스프레드{" "}
@@ -325,12 +400,12 @@ export default function StockDetailPage() {
                     <p>시가총액 {stock.marketCap}</p>
                     <p>거래량 {formatCompact(stock.volume)}</p>
                     <p className="mt-1">
-                      전일대비 거래량 <span className="text-foreground font-medium">{formatCompact(snapshot.changeVolumeFromPrevDay)}</span>
+                      전일대비 거래량{" "}
+                      <span className="text-foreground font-medium">{formatCompact(s0.changeVolumeFromPrevDay)}</span>
                     </p>
                   </div>
                 </div>
 
-                {/* ✅ 헤더에서 내려온 정보는 카드로 */}
                 <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <Card className="bg-secondary/40 border-border">
                     <CardContent className="p-4">
@@ -342,37 +417,50 @@ export default function StockDetailPage() {
                   <Card className="bg-secondary/40 border-border">
                     <CardContent className="p-4">
                       <p className="text-xs text-muted-foreground">거래대금</p>
-                      <p className="text-base font-bold text-foreground">{formatKoreanMoney(snapshot.accumulatedTradeAmount)}</p>
+                      <p className="text-base font-bold text-foreground">{formatKoreanMoney(s0.accumulatedTradeAmount)}</p>
                     </CardContent>
                   </Card>
 
                   <Card className="bg-secondary/40 border-border">
                     <CardContent className="p-4">
                       <p className="text-xs text-muted-foreground">회전율</p>
-                      <p className="text-base font-bold text-foreground">{formatNumber(snapshot.turnoverRate, 2)}%</p>
+                      <p className="text-base font-bold text-foreground">{formatNumber(s0.turnoverRate, 2)}%</p>
                     </CardContent>
                   </Card>
                 </div>
 
                 <div className="flex gap-1 mb-4">
                   {(["D", "W", "M", "Y"] as const).map((p) => (
-                    <Button key={p} variant={chartPeriod === p ? "default" : "ghost"} size="sm" onClick={() => setChartPeriod(p)}>
+                    <Button
+                      key={p}
+                      variant={chartPeriod === p ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setChartPeriod(p)}
+                    >
                       {p === "D" ? "1일" : p === "W" ? "1주" : p === "M" ? "1개월" : "1년"}
                     </Button>
                   ))}
                 </div>
 
-                <div className="h-[350px] overflow-hidden">
+                <div className="h-[350px] overflow-hidden relative">
                   <LightweightStockChart
                     data={priceHistory}
                     period={chartPeriod}
                     height={350}
                     refLines={{
-                      prevClose: snapshot?.prevClosePrice ?? null,
-                      dayHigh: snapshot?.highPrice ?? null,
-                      dayLow: snapshot?.lowPrice ?? null,
+                      prevClose: s0?.prevClosePrice ?? null,
+                      dayHigh: s0?.highPrice ?? null,
+                      dayLow: s0?.lowPrice ?? null,
                     }}
+                    onRequestMore={handleRequestMore}
+                    isFetchingMore={isFetchingMore}
                   />
+
+                  {isFetchingMore && (
+                    <div className="absolute left-3 top-3 rounded-md border border-border bg-background/80 px-2 py-1 text-xs text-muted-foreground backdrop-blur">
+                      과거 데이터 불러오는 중…
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-2 flex justify-end">
