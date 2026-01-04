@@ -239,7 +239,7 @@ export default function StockDetailPage() {
   if (!data || !snapshot) return null
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-background">
       {/* ✅ 헤더 2줄: 1) 종목/코드  2) 시장/업데이트 */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto w-full max-w-7xl px-4">
