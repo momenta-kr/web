@@ -144,7 +144,6 @@ export default function LightweightStockChart({
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const tooltipSideRef = useRef<"left" | "right">("right")
 
-  const yearOverlayRef = useRef<HTMLDivElement | null>(null)
   const hoverOverlayRef = useRef<HTMLDivElement | null>(null)
   const hoverLineElRef = useRef<HTMLDivElement | null>(null)
 
@@ -479,6 +478,21 @@ export default function LightweightStockChart({
 
     chart.subscribeCrosshairMove(onCrosshairMove)
 
+    // ✅ container 리사이즈 시 차트도 같이 리사이즈
+    let resizeRaf = 0
+    const ro = new ResizeObserver(() => {
+      if (disposed) return
+      cancelAnimationFrame(resizeRaf)
+      resizeRaf = requestAnimationFrame(() => {
+        if (disposed) return
+        const w = el.clientWidth
+        // wrapper div에 height 스타일을 주고 있으니 el.clientHeight를 써도 됨
+        const h = el.clientHeight || height
+        chart.applyOptions({ width: w, height: h })
+      })
+    })
+    ro.observe(el)
+
     // ✅ 실제 요청 로직
     const maybeRequestMore = () => {
       const latest = latestRef.current
@@ -553,95 +567,17 @@ export default function LightweightStockChart({
       console.warn("[chart] no visible range subscription API found. Upgrade lightweight-charts or check import.")
     }
 
-    // ----- Year guides overlay -----
-    const drawYearGuides = () => {
-      if (disposed) return
-      const overlay = yearOverlayRef.current
-      if (!overlay) return
-
-      overlay.innerHTML = ""
-
-      const latest = latestRef.current
-      if (latest.period === "Y") return
-      if (!latest.data?.length) return
-
-      const marks: { t: UTCTimestamp; year: string }[] = []
-      for (let i = 0; i < latest.data.length; i++) {
-        const curY = latest.data[i].date.slice(0, 4)
-        const prevY = i > 0 ? latest.data[i - 1].date.slice(0, 4) : null
-        if (i === 0 || (prevY && prevY !== curY)) {
-          marks.push({ t: yyyymmddToUTCSeconds(latest.data[i].date), year: curY })
-        }
-      }
-
-      const w = el.clientWidth
-      const h = height
-
-      const frag = document.createDocumentFragment()
-      for (const m of marks) {
-        const xx = chart.timeScale().timeToCoordinate(m.t)
-        if (xx == null) continue
-
-        const line = document.createElement("div")
-        line.style.position = "absolute"
-        line.style.left = `${xx}px`
-        line.style.top = `0px`
-        line.style.width = "2px"
-        line.style.height = `${h}px`
-        line.style.background = UI_BORDER
-        line.style.opacity = "0.65"
-        frag.appendChild(line)
-
-        const label = document.createElement("div")
-        label.style.position = "absolute"
-        label.style.left = `${xx + 6}px`
-        label.style.top = `10px`
-        label.style.fontSize = "18px"
-        label.style.fontWeight = "800"
-        label.style.color = UI_FG
-        label.style.opacity = "0.14"
-        label.textContent = m.year
-        frag.appendChild(label)
-      }
-
-      overlay.appendChild(frag)
-      overlay.style.width = `${w}px`
-      overlay.style.height = `${h}px`
-    }
-
-    const scheduleGuides = () => {
-      if (disposed) return
-      cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(drawYearGuides)
-    }
-
-    chart.timeScale().subscribeVisibleTimeRangeChange(scheduleGuides)
-
-    const ro = new ResizeObserver(() => {
-      if (disposed) return
-      chart.applyOptions({ width: el.clientWidth })
-      scheduleGuides()
-    })
-    ro.observe(el)
-
     return () => {
-      disposed = true
-      cancelAnimationFrame(raf)
+      cancelAnimationFrame(resizeRaf)
       ro.disconnect()
-
-      chart.timeScale().unsubscribeVisibleTimeRangeChange(scheduleGuides)
-      chart.unsubscribeCrosshairMove(onCrosshairMove)
+      cancelAnimationFrame(raf)
+      disposed = true
       unsubscribeVisible?.()
-
+      chart.unsubscribeCrosshairMove(onCrosshairMove)
       chart.remove()
       chartRef.current = null
-      candleRef.current = null
-      volRef.current = null
-      ma5Ref.current = null
-      ma20Ref.current = null
-      ma60Ref.current = null
-      ma120Ref.current = null
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -706,7 +642,6 @@ export default function LightweightStockChart({
   return (
     <div className="relative w-full" style={{ height }}>
       <div ref={containerRef} className="h-full w-full" style={{ position: "relative", zIndex: 0 }} />
-      <div ref={yearOverlayRef} className="pointer-events-none absolute inset-0" style={{ zIndex: 10 }} />
       <div ref={hoverOverlayRef} className="pointer-events-none absolute inset-0" style={{ zIndex: 20 }} />
       <div
         ref={tooltipRef}

@@ -318,7 +318,7 @@ export default function StockDetailPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto w-full max-w-7xl px-4">
+        <div className="w-full px-4">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3 min-w-0">
               <Link href="/">
@@ -358,7 +358,7 @@ export default function StockDetailPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 space-y-6">
+      <main className="px-4 py-6 space-y-6">
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
             <Card className="bg-card border-border">
@@ -407,26 +407,26 @@ export default function StockDetailPage() {
                 </div>
 
                 <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <Card className="bg-secondary/40 border-border">
-                    <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground">섹터</p>
-                      <p className="text-base font-bold text-foreground truncate">{stock.sector}</p>
-                    </CardContent>
-                  </Card>
+                  {/*<Card className="bg-secondary/40 border-border">*/}
+                  {/*  <CardContent className="p-4">*/}
+                  {/*    <p className="text-xs text-muted-foreground">섹터</p>*/}
+                  {/*    <p className="text-base font-bold text-foreground truncate">{stock.sector}</p>*/}
+                  {/*  </CardContent>*/}
+                  {/*</Card>*/}
 
-                  <Card className="bg-secondary/40 border-border">
-                    <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground">거래대금</p>
-                      <p className="text-base font-bold text-foreground">{formatKoreanMoney(s0.accumulatedTradeAmount)}</p>
-                    </CardContent>
-                  </Card>
+                  {/*<Card className="bg-secondary/40 border-border">*/}
+                  {/*  <CardContent className="p-4">*/}
+                  {/*    <p className="text-xs text-muted-foreground">거래대금</p>*/}
+                  {/*    <p className="text-base font-bold text-foreground">{formatKoreanMoney(s0.accumulatedTradeAmount)}</p>*/}
+                  {/*  </CardContent>*/}
+                  {/*</Card>*/}
 
-                  <Card className="bg-secondary/40 border-border">
-                    <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground">회전율</p>
-                      <p className="text-base font-bold text-foreground">{formatNumber(s0.turnoverRate, 2)}%</p>
-                    </CardContent>
-                  </Card>
+                  {/*<Card className="bg-secondary/40 border-border">*/}
+                  {/*  <CardContent className="p-4">*/}
+                  {/*    <p className="text-xs text-muted-foreground">회전율</p>*/}
+                  {/*    <p className="text-base font-bold text-foreground">{formatNumber(s0.turnoverRate, 2)}%</p>*/}
+                  {/*  </CardContent>*/}
+                  {/*</Card>*/}
                 </div>
 
                 <div className="flex gap-1 mb-4">
@@ -518,79 +518,6 @@ export default function StockDetailPage() {
           <div className="lg:col-span-1">
             <div className="sticky top-20 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pb-6">
               <NewsAnalysis stockName={stock.name} />
-
-              <Card className="bg-card border-border">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold">최근 이상징후</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {stockAnomalies.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">최근 감지된 이상징후가 없습니다</p>
-                  ) : (
-                    stockAnomalies.map((anomaly) => (
-                      <div key={anomaly.id} className="p-3 rounded-lg bg-secondary/50 border border-border">
-                        <div className="flex items-center justify-between mb-1">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-xs",
-                              anomaly.severity === "high"
-                                ? "border-chart-2/30 text-chart-2"
-                                : anomaly.severity === "medium"
-                                  ? "border-chart-4/30 text-chart-4"
-                                  : "border-chart-1/30 text-chart-1",
-                            )}
-                          >
-                            {anomaly.type === "surge"
-                              ? "급등"
-                              : anomaly.type === "plunge"
-                                ? "급락"
-                                : anomaly.type === "volume"
-                                  ? "거래량"
-                                  : "변동성"}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">{anomaly.time}</span>
-                        </div>
-                        <p className="text-sm text-foreground">{anomaly.description}</p>
-                        <p
-                          className={cn(
-                            "text-sm font-bold mt-1",
-                            anomaly.type === "surge" || anomaly.type === "volume" ? "text-chart-1" : "text-chart-2",
-                          )}
-                        >
-                          {anomaly.value}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card border-border">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold">데이터 상태</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">조회 주기</span>
-                    <span className="text-foreground font-medium">페이지 진입/기간 변경 시</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">마지막 업데이트</span>
-                    <span className="text-foreground font-medium">
-                      {dataUpdatedAt ? new Date(dataUpdatedAt).toTimeString().slice(0, 8) : "-"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">응답 코드</span>
-                    <span className="text-foreground font-medium">{(data as any).resultCode ?? "-"}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">메시지</span>
-                    <span className="text-foreground font-medium truncate max-w-[180px]">{(data as any).message ?? "-"}</span>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </div>
