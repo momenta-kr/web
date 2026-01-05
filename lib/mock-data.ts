@@ -1,3 +1,5 @@
+// Mock 데이터 및 실시간 시뮬레이션 유틸리티
+
 import type { Stock, Anomaly, MarketIndex, SectorData, AlertRule, Market, AnomalyType, Severity } from "./types"
 
 // 종목 데이터
@@ -584,7 +586,7 @@ export function generateNewsItems(stockName: string): {
       url: "https://www.yna.co.kr",
     },
     {
-      title: `${stockName}, 신약 임상 3상 실패...주가 급락 우려`,
+      title: `${stockName} 신약 임상 3상 실패...주가 급락 우려`,
       sentiment: "negative" as const,
       content: `${stockName}의 주력 파이프라인 신약이 임상 3상에서 유의미한 효과를 입증하지 못했다. 수년간의 R&D 투자가 무산될 위기다.`,
       aiSummary: "핵심 파이프라인 실패는 치명적. 기업가치 재평가 불가피. 대안 파이프라인 부재 시 심각.",
@@ -876,4 +878,128 @@ export function generateMarketNews(): {
       minute: "2-digit",
     }),
   }))
+}
+
+export function generateAIInsight(stock: Stock): {
+  sentiment: "bullish" | "bearish" | "neutral"
+  confidence: number
+  summary: string
+  keyPoints: string[]
+  recommendation: string
+  riskLevel: "low" | "medium" | "high"
+  targetPrice: { low: number; mid: number; high: number }
+} {
+  const sentiments = ["bullish", "bearish", "neutral"] as const
+  const sentiment = stock.changePercent > 1 ? "bullish" : stock.changePercent < -1 ? "bearish" : "neutral"
+  const confidence = Math.floor(Math.random() * 30 + 60)
+  const riskLevels = ["low", "medium", "high"] as const
+  const riskLevel = riskLevels[Math.floor(Math.random() * 3)]
+
+  const bullishPoints = [
+    "외국인 순매수 지속으로 수급 개선",
+    "실적 개선 모멘텀 유효",
+    "업종 내 경쟁력 강화 추세",
+    "신사업 성장 가시화",
+    "밸류에이션 매력 부각",
+  ]
+
+  const bearishPoints = [
+    "외국인 순매도 압력 지속",
+    "실적 둔화 우려 존재",
+    "경쟁 심화로 마진 압박",
+    "거시경제 불확실성 영향",
+    "고평가 논란 지속",
+  ]
+
+  const neutralPoints = [
+    "현 주가 수준에서 관망 권고",
+    "추가 모멘텀 확인 필요",
+    "업종 평균 수준의 밸류에이션",
+    "단기 변동성 확대 가능성",
+    "실적 발표 후 방향성 결정",
+  ]
+
+  const points = sentiment === "bullish" ? bullishPoints : sentiment === "bearish" ? bearishPoints : neutralPoints
+  const selectedPoints = points.sort(() => Math.random() - 0.5).slice(0, 3)
+
+  const summaries = {
+    bullish: `${stock.name}은 현재 긍정적인 모멘텀을 보이고 있습니다. 최근 뉴스 분석 결과 호재성 뉴스가 우세하며, 수급 개선과 실적 기대감이 주가 상승을 견인하고 있습니다.`,
+    bearish: `${stock.name}은 단기적으로 조정 압력이 존재합니다. 악재성 뉴스와 외국인 매도세가 부담 요인으로 작용하고 있어 신중한 접근이 필요합니다.`,
+    neutral: `${stock.name}은 현재 중립적인 상황입니다. 뚜렷한 방향성이 없어 추가적인 촉매제 확인 후 투자 결정을 권고드립니다.`,
+  }
+
+  const recommendations = {
+    bullish: "매수 관점 유지, 조정 시 비중 확대 고려",
+    bearish: "신규 매수 보류, 기존 보유 시 리스크 관리 필요",
+    neutral: "관망 권고, 추가 모멘텀 확인 후 대응",
+  }
+
+  return {
+    sentiment,
+    confidence,
+    summary: summaries[sentiment],
+    keyPoints: selectedPoints,
+    recommendation: recommendations[sentiment],
+    riskLevel,
+    targetPrice: {
+      low: Math.round(stock.price * 0.85),
+      mid: Math.round(stock.price * (sentiment === "bullish" ? 1.15 : sentiment === "bearish" ? 0.95 : 1.05)),
+      high: Math.round(stock.price * 1.3),
+    },
+  }
+}
+
+export function generateNewsCluster(stockName: string): {
+  theme: string
+  sentiment: "positive" | "negative" | "neutral"
+  newsCount: number
+  impactScore: number
+  stocks: { ticker: string; name: string; correlation: number }[]
+}[] {
+  const clusters = [
+    {
+      theme: "AI/반도체 수요 확대",
+      sentiment: "positive" as const,
+      newsCount: 12,
+      impactScore: 75,
+      stocks: [
+        { ticker: "005930", name: "삼성전자", correlation: 0.92 },
+        { ticker: "000660", name: "SK하이닉스", correlation: 0.88 },
+        { ticker: "042700", name: "한미반도체", correlation: 0.75 },
+      ],
+    },
+    {
+      theme: "2차전지 시장 경쟁",
+      sentiment: "neutral" as const,
+      newsCount: 8,
+      impactScore: 45,
+      stocks: [
+        { ticker: "373220", name: "LG에너지솔루션", correlation: 0.85 },
+        { ticker: "006400", name: "삼성SDI", correlation: 0.82 },
+        { ticker: "247540", name: "에코프로비엠", correlation: 0.78 },
+      ],
+    },
+    {
+      theme: "금리 인하 기대",
+      sentiment: "positive" as const,
+      newsCount: 6,
+      impactScore: 55,
+      stocks: [
+        { ticker: "105560", name: "KB금융", correlation: 0.72 },
+        { ticker: "055550", name: "신한지주", correlation: 0.7 },
+      ],
+    },
+    {
+      theme: "수출 둔화 우려",
+      sentiment: "negative" as const,
+      newsCount: 5,
+      impactScore: -40,
+      stocks: [
+        { ticker: "005380", name: "현대차", correlation: 0.68 },
+        { ticker: "000270", name: "기아", correlation: 0.65 },
+      ],
+    },
+  ]
+
+  return clusters.sort(() => Math.random() - 0.5).slice(0, 3)
 }

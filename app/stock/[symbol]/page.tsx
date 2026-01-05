@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Star, TrendingUp, TrendingDown } from "lucide-react"
+import { ArrowLeft, Star, TrendingUp, TrendingDown, Bell, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,11 @@ import { useAnomalies, useMarketState } from "@/lib/store"
 import { NewsAnalysis } from "@/components/stock/news-analysis"
 import { InvestorTrends } from "@/components/stock/investor-trends"
 import LightweightStockChart from "@/components/stock/light-weight-stock-chart"
+
+// ✅ 추가 (없으면 아래 2~4번 파일도 같이 추가)
+import { AIInsight } from "@/components/stock/ai-insight"
+import { NewsCluster } from "@/components/stock/news-cluster"
+import { RealTimeAlerts } from "@/components/stock/realtime-alerts"
 
 import { useDomesticStockPeriodPrices } from "@/domain/stock/queries/useDomesticStockPeriodPrices"
 import { fetchDomesticStockPeriodPrices } from "@/domain/stock/api/fetch-domestic-stock-period-prices"
@@ -128,6 +133,44 @@ function mergePricesDesc(prev: any[], next: any[]) {
   return Array.from(map.values()).sort((a, b) => pickYmd(b).localeCompare(pickYmd(a)))
 }
 
+/** ✅ 옵션: 같은 섹터 종목(피어) - API 있으면 붙고, 없으면 그냥 안 보임 */
+type PeerStock = { symbol: string; name: string; changeRate?: number; changePercent?: number; market?: string }
+function useSectorPeers(symbol: string, sector?: string) {
+  const [peers, setPeers] = useState<PeerStock[]>([])
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      try {
+        // 👇 네 백엔드에 맞게 엔드포인트만 바꾸면 됨
+        // 기대 포맷 예: { items: [{symbol,name,changeRate}] }
+        const res = await fetch(`/api/stocks/v1/sector/peers?symbol=${encodeURIComponent(symbol)}`, { cache: "no-store" })
+        if (!res.ok) return
+        const json = await res.json()
+        const items: any[] = Array.isArray(json?.items) ? json.items : Array.isArray(json) ? json : []
+        const mapped = items
+          .map((x) => ({
+            symbol: String(x.symbol ?? x.ticker ?? ""),
+            name: String(x.name ?? x.stockName ?? ""),
+            changeRate: typeof x.changeRate === "number" ? x.changeRate : typeof x.changePercent === "number" ? x.changePercent : undefined,
+            market: x.market ? String(x.market) : undefined,
+          }))
+          .filter((x) => x.symbol && x.name && x.symbol !== symbol)
+          .slice(0, 4)
+
+        if (!cancelled) setPeers(mapped)
+      } catch {
+        // endpoint 없으면 조용히 스킵
+      }
+    }
+    // sector가 없다면 굳이 호출 안 해도 되지만, symbol 기준 피어는 가능하니 호출 유지
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [symbol, sector])
+  return peers
+}
+
 export default function StockDetailPage() {
   const params = useParams()
   const symbol = params.symbol as string
@@ -137,7 +180,6 @@ export default function StockDetailPage() {
 
   const [isFavorite, setIsFavorite] = useState(false)
   const [chartPeriod, setChartPeriod] = useState<Period>("D")
-
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [mergedPrices, setMergedPrices] = useState<any[]>([])
   const [mergedSnapshot, setMergedSnapshot] = useState<any>(null)
@@ -159,15 +201,10 @@ export default function StockDetailPage() {
   /** ✅ from은 "시작일(YYYY-MM-dd)"로 백엔드에 보냄 (LocalDate.parse 맞춤) */
   const handleRequestMore = async (fromIso: string, toIso: string) => {
     if (isFetchingMore) return
-
-    // ✅ 여기서 return으로 막아버리면 네트워크 탭에 아예 안 뜸
-    //    최소한 로그라도 찍고 싶은 경우:
     if (!fromIso || fromIso.length !== 10 || !toIso || toIso.length !== 10) {
       console.warn("[handleRequestMore] invalid range", { fromIso, toIso })
       return
     }
-
-    console.log("Requesting more data:", { fromIso, toIso })
 
     try {
       setIsFetchingMore(true)
@@ -175,8 +212,8 @@ export default function StockDetailPage() {
       const more = await fetchDomesticStockPeriodPrices({
         symbol,
         periodType: chartPeriod,
-        from: fromIso, // ✅ 항상 채워서 전달
-        to: toIso,     // ✅ 항상 채워서 전달
+        from: fromIso,
+        to: toIso,
       } as any)
 
       const moreSnapshot = (more as any)?.snapshot ?? null
@@ -212,7 +249,6 @@ export default function StockDetailPage() {
     const src = mergedPrices ?? []
     if (!src.length) return []
 
-    // API가 최신->과거면 reverse 해서 asc로 만든 뒤 MA 계산
     const asc = [...src].reverse()
 
     const mapped: CandlePoint[] = asc
@@ -265,14 +301,9 @@ export default function StockDetailPage() {
     (mergedSnapshot ?? snapshot)?.highPrice ?? null,
   )
 
-  const spread =
-    (mergedSnapshot ?? snapshot)?.askPrice != null && (mergedSnapshot ?? snapshot)?.bidPrice != null
-      ? (mergedSnapshot ?? snapshot).askPrice - (mergedSnapshot ?? snapshot).bidPrice
-      : null
-  const spreadPct =
-    spread != null && (mergedSnapshot ?? snapshot)?.currentPrice != null && (mergedSnapshot ?? snapshot).currentPrice > 0
-      ? (spread / (mergedSnapshot ?? snapshot).currentPrice) * 100
-      : null
+  const s0 = mergedSnapshot ?? snapshot
+  const spread = s0?.askPrice != null && s0?.bidPrice != null ? s0.askPrice - s0.bidPrice : null
+  const spreadPct = spread != null && s0?.currentPrice > 0 ? (spread / s0.currentPrice) * 100 : null
 
   const financialMetrics = useMemo(() => {
     const s = mergedSnapshot ?? snapshot
@@ -287,6 +318,33 @@ export default function StockDetailPage() {
       { label: "회전율", value: s?.turnoverRate != null ? `${formatNumber(s.turnoverRate, 2)}%` : "-" },
     ]
   }, [mergedSnapshot, snapshot])
+
+  const peers = useSectorPeers(symbol, stock.sector)
+
+  // ✅ 공유 버튼 동작
+  const handleShare = async () => {
+    const url = typeof window !== "undefined" ? window.location.href : ""
+    try {
+      // Web Share API (모바일 등)
+      if ((navigator as any).share) {
+        await (navigator as any).share({ title: `${stock.name} (${stock.ticker})`, url })
+        return
+      }
+    } catch {}
+    try {
+      await navigator.clipboard.writeText(url)
+      alert("링크를 클립보드에 복사했어요.")
+    } catch {
+      // 최후 fallback
+      prompt("링크 복사:", url)
+    }
+  }
+
+  // ✅ 알림 버튼: 오른쪽 RealTimeAlerts로 스크롤
+  const handleGoAlerts = () => {
+    const el = document.getElementById("realtime-alerts")
+    el?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
 
   if (isError) {
     return (
@@ -313,7 +371,6 @@ export default function StockDetailPage() {
   }
 
   if (!data || !(mergedSnapshot ?? snapshot)) return null
-  const s0 = mergedSnapshot ?? snapshot
 
   return (
     <div className="min-h-screen bg-background">
@@ -351,16 +408,27 @@ export default function StockDetailPage() {
               </div>
             </div>
 
-            <Button variant="ghost" size="icon" onClick={() => setIsFavorite(!isFavorite)}>
-              <Star className={cn("h-5 w-5", isFavorite && "fill-chart-4 text-chart-4")} />
-            </Button>
+            {/* ✅ v0에 있던 헤더 액션들 추가 */}
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" onClick={() => setIsFavorite(!isFavorite)} aria-label="favorite">
+                <Star className={cn("h-5 w-5", isFavorite && "fill-chart-4 text-chart-4")} />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleGoAlerts} aria-label="alerts">
+                <Bell className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleShare} aria-label="share">
+                <Share2 className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="px-4 py-6 space-y-6">
         <div className="grid gap-6 lg:grid-cols-3">
+          {/* Left (main) */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Price + Chart */}
             <Card className="bg-card border-border">
               <CardContent className="p-6">
                 <div className="flex items-end justify-between mb-6">
@@ -381,7 +449,9 @@ export default function StockDetailPage() {
                     <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
                       <span className="rounded-md bg-secondary/60 px-2 py-1">
                         오늘 위치{" "}
-                        <span className="text-foreground font-medium">{todayPos == null ? "-" : `${Math.round(todayPos)}%`}</span>
+                        <span className="text-foreground font-medium">
+                          {todayPos == null ? "-" : `${Math.round(todayPos)}%`}
+                        </span>
                       </span>
                       <span className="rounded-md bg-secondary/60 px-2 py-1">
                         매수/매도 {formatNumber(s0.bidPrice, 0)} / {formatNumber(s0.askPrice, 0)}
@@ -404,29 +474,6 @@ export default function StockDetailPage() {
                       <span className="text-foreground font-medium">{formatCompact(s0.changeVolumeFromPrevDay)}</span>
                     </p>
                   </div>
-                </div>
-
-                <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  {/*<Card className="bg-secondary/40 border-border">*/}
-                  {/*  <CardContent className="p-4">*/}
-                  {/*    <p className="text-xs text-muted-foreground">섹터</p>*/}
-                  {/*    <p className="text-base font-bold text-foreground truncate">{stock.sector}</p>*/}
-                  {/*  </CardContent>*/}
-                  {/*</Card>*/}
-
-                  {/*<Card className="bg-secondary/40 border-border">*/}
-                  {/*  <CardContent className="p-4">*/}
-                  {/*    <p className="text-xs text-muted-foreground">거래대금</p>*/}
-                  {/*    <p className="text-base font-bold text-foreground">{formatKoreanMoney(s0.accumulatedTradeAmount)}</p>*/}
-                  {/*  </CardContent>*/}
-                  {/*</Card>*/}
-
-                  {/*<Card className="bg-secondary/40 border-border">*/}
-                  {/*  <CardContent className="p-4">*/}
-                  {/*    <p className="text-xs text-muted-foreground">회전율</p>*/}
-                  {/*    <p className="text-base font-bold text-foreground">{formatNumber(s0.turnoverRate, 2)}%</p>*/}
-                  {/*  </CardContent>*/}
-                  {/*</Card>*/}
                 </div>
 
                 <div className="flex gap-1 mb-4">
@@ -469,6 +516,18 @@ export default function StockDetailPage() {
               </CardContent>
             </Card>
 
+            {/* ✅ v0에 있던 AIInsight 추가 */}
+            <AIInsight symbol={symbol} />
+
+
+            {/* ✅ v0에 있던 NewsCluster 추가 */}
+            <NewsCluster stockName={stock.name} />
+
+            {/*/!* Investor Trends *!/*/}
+            <InvestorTrends />
+
+
+            {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="bg-card border-border">
                 <CardContent className="p-4">
@@ -496,8 +555,7 @@ export default function StockDetailPage() {
               </Card>
             </div>
 
-            <InvestorTrends />
-
+            {/* Financial */}
             <Card className="bg-card border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold">재무정보</CardTitle>
@@ -513,11 +571,43 @@ export default function StockDetailPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* ✅ v0에 있던 "같은 섹터 종목" (있으면만 보이게) */}
+            {peers.length > 0 && (
+              <Card className="bg-card border-border">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold">같은 섹터 종목</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {peers.map((p) => {
+                      const pct = p.changeRate ?? p.changePercent
+                      const up = (pct ?? 0) >= 0
+                      return (
+                        <Link
+                          key={p.symbol}
+                          href={`/stocks/${p.symbol}`}
+                          className="flex flex-col items-center p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                        >
+                          <span className="font-medium text-foreground">{p.name}</span>
+                          <span className={cn("text-lg font-bold mt-1", up ? "text-chart-1" : "text-chart-2")}>
+                            {pct == null ? "-" : `${up ? "+" : ""}${pct.toFixed(2)}%`}
+                          </span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
+          {/* Right (sticky) */}
           <div className="lg:col-span-1">
             <div className="sticky top-20 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pb-6">
+              {/* 뉴스 분석 (주 서비스) */}
               <NewsAnalysis stockName={stock.name} />
+
             </div>
           </div>
         </div>
