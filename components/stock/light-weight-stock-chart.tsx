@@ -142,6 +142,7 @@ export default function LightweightStockChart({
                                               }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
+  const tooltipSideRef = useRef<"left" | "right">("right")
 
   const yearOverlayRef = useRef<HTMLDivElement | null>(null)
   const hoverOverlayRef = useRef<HTMLDivElement | null>(null)
@@ -356,21 +357,59 @@ export default function LightweightStockChart({
       line.style.left = `${x}px`
     }
 
+
+
+
     const moveTooltipToPoint = (point: { x: number; y: number }) => {
       if (!tooltip) return
+
+      // 실제 렌더된 사이즈
       const tw = tooltip.offsetWidth || 180
       const th = tooltip.offsetHeight || 100
+
       const w = el.clientWidth
       const h = height
 
       const pad = 12
-      let left = point.x + pad
+
+      // ✅ 공간 기반으로 side 결정
+      const canPlaceRight = point.x + pad + tw <= w
+      const canPlaceLeft = point.x - pad - tw >= 0
+
+      let side: "left" | "right" = "right"
+      if (!canPlaceRight && canPlaceLeft) side = "left"
+      else if (canPlaceRight) side = "right"
+      else if (canPlaceLeft) side = "left" // 둘 다 애매하면 가능한 쪽
+      else side = point.x > w / 2 ? "left" : "right" // 둘 다 안되면 대충 반반
+
+      // ✅ side에 따라 마우스 기준 좌/우로 배치
+      let left = side === "right" ? point.x + pad : point.x - pad - tw
       let top = point.y + pad
+
+      // ✅ 화면 밖으로 튀지 않게 최종 클램프
       left = clamp(left, 0, Math.max(0, w - tw))
       top = clamp(top, 0, Math.max(0, h - th))
+
+      // 위치 적용 (transition으로 부드럽게 이동)
       tooltip.style.left = `${left}px`
       tooltip.style.top = `${top}px`
+
+      // ✅ side가 바뀌는 순간, 살짝 “방향성 있는” 슬라이드 애니메이션
+      const prevSide = tooltipSideRef.current
+      if (prevSide !== side) {
+        tooltipSideRef.current = side
+
+        // 바뀐 방향 반대로 살짝 이동 → 다음 프레임에 0으로 복귀
+        tooltip.style.transform = `translateX(${side === "right" ? -8 : 8}px)`
+        requestAnimationFrame(() => {
+          if (!tooltip) return
+          tooltip.style.transform = "translateX(0px)"
+        })
+      } else {
+        tooltip.style.transform = "translateX(0px)"
+      }
     }
+
 
     const onCrosshairMove = (param: MouseEventParams<Time>) => {
       if (disposed) return
@@ -475,27 +514,28 @@ export default function LightweightStockChart({
 
     // ✅ “구독 API가 없어서” 안 걸리는 케이스 방지: available subscriber로 fallback
     const ts: any = chart.timeScale()
+
     const onAnyVisibleChange = () => {
+      if (disposed) return
 
       const latest = latestRef.current
-
-      console.log("visible change")
+      const first = latest.data?.[0]
+      if (!first?.date || first.date.length !== 8) return  // ✅ 핵심 가드
 
       // ✅ 현재 로딩된 데이터 중 "가장 오래된 봉"
-      const earliestTime = yyyymmddToUTCSeconds(latest.data[0].date)
+      const earliestTime = yyyymmddToUTCSeconds(first.date)
 
       // ✅ 그 봉이 화면상 어디쯤 있는지 좌표로 판단
       const x = chart.timeScale().timeToCoordinate(earliestTime)
 
-      // timeToCoordinate가 null이면 아직 화면에 안 들어온 것(= 더 왼쪽에 있음)
       if (x == null) return
 
-      // ✅ 왼쪽 여백 때문에 0까지는 못 가더라도, 일정 px 이내면 "끝"으로 판단
-      const LEFT_THRESHOLD_PX = 120 // 60~120 사이로 취향 조절
+      const LEFT_THRESHOLD_PX = 120
       if (x <= LEFT_THRESHOLD_PX) {
         maybeRequestMore()
       }
     }
+
 
 
     let unsubscribeVisible: (() => void) | null = null
@@ -676,7 +716,8 @@ export default function LightweightStockChart({
           top: 0,
           opacity: 0,
           zIndex: 30,
-          transition: "opacity 120ms ease",
+          transition: "opacity 120ms ease, left 140ms ease, top 140ms ease, transform 140ms ease",
+          transform: "translateX(0px)",
           border: `1px solid ${UI_BORDER}`,
           background: UI_PANEL_BG,
           borderRadius: 10,
