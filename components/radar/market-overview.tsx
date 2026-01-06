@@ -222,32 +222,32 @@ export function MarketOverview({market}: MarketOverviewProps) {
       </Card>
 
       {/* 2) 거래 규모(누적) */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">거래 규모(누적)</span>
-            <BarChart3 className="h-4 w-4 text-chart-3"/>
-          </div>
+      {/*<Card className="bg-card border-border">*/}
+      {/*  <CardContent className="p-4">*/}
+      {/*    <div className="flex items-center justify-between">*/}
+      {/*      <span className="text-sm text-muted-foreground">거래 규모(누적)</span>*/}
+      {/*      <BarChart3 className="h-4 w-4 text-chart-3"/>*/}
+      {/*    </div>*/}
 
-          <div className="mt-2">
-            <div className="text-xs text-muted-foreground">누적 거래량</div>
-            <div className="text-2xl font-bold text-foreground">{formatCompact(index.accumulatedVolume)}</div>
+      {/*    <div className="mt-2">*/}
+      {/*      <div className="text-xs text-muted-foreground">누적 거래량</div>*/}
+      {/*      <div className="text-2xl font-bold text-foreground">{formatCompact(index.accumulatedVolume)}</div>*/}
 
-            <div className="mt-2 text-xs text-muted-foreground">누적 거래대금</div>
-            <div
-              className="text-lg font-semibold text-foreground">{formatKoreanMoney(index.accumulatedTradeAmount)}</div>
+      {/*      <div className="mt-2 text-xs text-muted-foreground">누적 거래대금</div>*/}
+      {/*      <div*/}
+      {/*        className="text-lg font-semibold text-foreground">{formatKoreanMoney(index.accumulatedTradeAmount)}</div>*/}
 
-            <div className="mt-2 text-xs text-muted-foreground">
-              전일 대비(참고):{" "}
-              <span className="text-foreground">
-                거래량 {volumeDelta == null ? "-" : (volumeDelta >= 0 ? "+" : "") + formatCompact(volumeDelta)}
-                {" · "}
-                거래대금 {tradeAmountDelta == null ? "-" : (tradeAmountDelta >= 0 ? "+" : "") + formatKoreanMoney(tradeAmountDelta)}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/*      <div className="mt-2 text-xs text-muted-foreground">*/}
+      {/*        전일 대비(참고):{" "}*/}
+      {/*        <span className="text-foreground">*/}
+      {/*          거래량 {volumeDelta == null ? "-" : (volumeDelta >= 0 ? "+" : "") + formatCompact(volumeDelta)}*/}
+      {/*          {" · "}*/}
+      {/*          거래대금 {tradeAmountDelta == null ? "-" : (tradeAmountDelta >= 0 ? "+" : "") + formatKoreanMoney(tradeAmountDelta)}*/}
+      {/*        </span>*/}
+      {/*      </div>*/}
+      {/*    </div>*/}
+      {/*  </CardContent>*/}
+      {/*</Card>*/}
 
       {/* 3) 시장 체력(상승/하락) */}
       <Card className="bg-card border-border">
@@ -284,57 +284,57 @@ export function MarketOverview({market}: MarketOverviewProps) {
       </Card>
 
       {/* 4) 수급(호가 잔량) */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">수급(호가 잔량)</span>
-            <div className="flex items-center gap-2">
-              {pressureText && (
-                <span className="text-xs text-muted-foreground">
-                  {pressureText}
-                </span>
-              )}
-              <Scale className="h-4 w-4 text-muted-foreground"/>
-            </div>
-          </div>
+      {/*<Card className="bg-card border-border">*/}
+      {/*  <CardContent className="p-4">*/}
+      {/*    <div className="flex items-center justify-between">*/}
+      {/*      <span className="text-sm text-muted-foreground">수급(호가 잔량)</span>*/}
+      {/*      <div className="flex items-center gap-2">*/}
+      {/*        {pressureText && (*/}
+      {/*          <span className="text-xs text-muted-foreground">*/}
+      {/*            {pressureText}*/}
+      {/*          </span>*/}
+      {/*        )}*/}
+      {/*        <Scale className="h-4 w-4 text-muted-foreground"/>*/}
+      {/*      </div>*/}
+      {/*    </div>*/}
 
-          <div className="mt-2 grid grid-cols-2 gap-3">
-            <div>
-              <div className="text-xs text-muted-foreground">총 매수 잔량</div>
-              <div className="text-lg font-semibold text-foreground">{formatCompact(index.totalBidQuantity)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">총 매도 잔량</div>
-              <div className="text-lg font-semibold text-foreground">{formatCompact(index.totalAskQuantity)}</div>
-            </div>
-          </div>
+      {/*    <div className="mt-2 grid grid-cols-2 gap-3">*/}
+      {/*      <div>*/}
+      {/*        <div className="text-xs text-muted-foreground">총 매수 잔량</div>*/}
+      {/*        <div className="text-lg font-semibold text-foreground">{formatCompact(index.totalBidQuantity)}</div>*/}
+      {/*      </div>*/}
+      {/*      <div>*/}
+      {/*        <div className="text-xs text-muted-foreground">총 매도 잔량</div>*/}
+      {/*        <div className="text-lg font-semibold text-foreground">{formatCompact(index.totalAskQuantity)}</div>*/}
+      {/*      </div>*/}
+      {/*    </div>*/}
 
-          <div className="mt-2 text-xs text-muted-foreground">
-            순매수 잔량:{" "}
-            <span className={`${(netBuy ?? 0) >= 0 ? "text-chart-1" : "text-chart-2"} font-medium`}>
-              {(netBuy ?? 0) >= 0 ? "+" : ""}
-              {formatCompact(netBuy)}
-            </span>
-          </div>
+      {/*    <div className="mt-2 text-xs text-muted-foreground">*/}
+      {/*      순매수 잔량:{" "}*/}
+      {/*      <span className={`${(netBuy ?? 0) >= 0 ? "text-chart-1" : "text-chart-2"} font-medium`}>*/}
+      {/*        {(netBuy ?? 0) >= 0 ? "+" : ""}*/}
+      {/*        {formatCompact(netBuy)}*/}
+      {/*      </span>*/}
+      {/*    </div>*/}
 
-          <div className="mt-2 text-xs text-muted-foreground">
-            잔량 비율(매수/매도):{" "}
-            <span className="text-foreground">
-              {index.buyQuantityRate == null ? "-" : `${formatNumber(index.buyQuantityRate, 1)}%`} /{" "}
-              {index.sellQuantityRate == null ? "-" : `${formatNumber(index.sellQuantityRate, 1)}%`}
-            </span>
-          </div>
+      {/*    <div className="mt-2 text-xs text-muted-foreground">*/}
+      {/*      잔량 비율(매수/매도):{" "}*/}
+      {/*      <span className="text-foreground">*/}
+      {/*        {index.buyQuantityRate == null ? "-" : `${formatNumber(index.buyQuantityRate, 1)}%`} /{" "}*/}
+      {/*        {index.sellQuantityRate == null ? "-" : `${formatNumber(index.sellQuantityRate, 1)}%`}*/}
+      {/*      </span>*/}
+      {/*    </div>*/}
 
-          <div className="mt-2">
-            <p className="text-xs text-muted-foreground">
-              마지막 업데이트:{" "}
-              <span className="text-foreground">
-                {dataUpdatedAt ? new Date(dataUpdatedAt).toTimeString().slice(0, 8) : new Date().toTimeString().slice(0, 8)}
-              </span>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/*    <div className="mt-2">*/}
+      {/*      <p className="text-xs text-muted-foreground">*/}
+      {/*        마지막 업데이트:{" "}*/}
+      {/*        <span className="text-foreground">*/}
+      {/*          {dataUpdatedAt ? new Date(dataUpdatedAt).toTimeString().slice(0, 8) : new Date().toTimeString().slice(0, 8)}*/}
+      {/*        </span>*/}
+      {/*      </p>*/}
+      {/*    </div>*/}
+      {/*  </CardContent>*/}
+      {/*</Card>*/}
     </div>
   )
 }

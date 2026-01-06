@@ -24,9 +24,10 @@ export function MarketRadarDashboard() {
           {/* Left Column */}
           <div className="lg:col-span-8 space-y-4 sm:space-y-6 min-w-0">
             <MarketOverview market={market} />
+            <MarketNewsFeed />
             <SectorIndices />
             <PriceMovers market={market} />
-            <MarketNewsFeed />
+
           </div>
 
           {/* Right Column */}
