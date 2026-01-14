@@ -23,7 +23,7 @@ export function MarketRadarDashboard() {
         {/* ✅ 모바일 gap 축소 */}
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-12">
           {/* Left Column */}
-          <div className="lg:col-span-8 space-y-4 sm:space-y-6 min-w-0">
+          <div className="lg:col-span-8 space-y-10 min-w-0">
             <MarketOverview market={market} />
             <RealtimeNews />
             <SectorIndices />
@@ -34,7 +34,7 @@ export function MarketRadarDashboard() {
           {/* Right Column */}
           <div className="lg:col-span-4 min-w-0">
             {/* ✅ 모바일에서는 sticky/스크롤 박스 OFF, lg부터 ON */}
-            <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-20">
+            <div className="space-y-6 lg:sticky lg:top-20">
               <MarketNewsFeed />
               <AnomalyFeed market={market} timeRange={timeRange} />
               <AlertSettings />
