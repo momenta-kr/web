@@ -1082,6 +1082,8 @@ export default function StockDetailPage() {
     el?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
+  const peers = useSectorPeers(symbol, stock.sector)
+
   if (isError) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4 overflow-x-hidden">
@@ -1106,7 +1108,7 @@ export default function StockDetailPage() {
     )
   }
 
-  const peers = useSectorPeers(symbol, stock.sector)
+
 
   if (!data || !(mergedSnapshot ?? snapshot)) return null
 
@@ -1244,6 +1246,8 @@ export default function StockDetailPage() {
               </CardContent>
             </Card>
 
+            {/* News Analysis */}
+            <NewsAnalysis stockName={stock.name} />
             <AIInsight symbol={symbol} />
             <NewsCluster stockName={stock.name} />
 
@@ -1845,9 +1849,6 @@ export default function StockDetailPage() {
                   )}
                 </CardContent>
               </Card>
-
-              {/* News Analysis */}
-              <NewsAnalysis stockName={stock.name} />
             </div>
           </div>
         </div>

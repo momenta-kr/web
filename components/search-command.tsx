@@ -214,11 +214,24 @@ export function SearchCommand() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="hidden lg:flex items-center gap-2 h-9 w-[260px] rounded-md border border-input bg-secondary px-3 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+        className={cn(
+          "group hidden lg:flex items-center gap-2 h-9 w-[260px] rounded-md border border-input bg-secondary px-3 text-sm",
+          "text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
+          "cursor-pointer",
+        )}
       >
         <Search className="h-4 w-4" />
         <span className="flex-1 text-left">종목 검색...</span>
-        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+
+        <kbd
+          className={cn(
+            "pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex",
+            // ✅ hover 시에도 흰색으로 안 변하게 고정
+            "text-muted-foreground",
+            // (선택) hover 때도 kbd 배경/보더를 그대로 유지하고 싶으면 아래도 추가 가능
+            "group-hover:bg-muted group-hover:border-input",
+          )}
+        >
           <span className="text-xs">⌘</span>K
         </kbd>
       </button>
