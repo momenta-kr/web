@@ -196,6 +196,21 @@ const KEYWORD_TO_STOCKS: Array<{ keys: string[]; picks: string[] }> = [
   { keys: ["은행", "금리", "대출", "예대마진"], picks: ["055550"] },
 ]
 
+const SOURCE_KO_MAP: Record<string, string> = {
+  // ✅ 스샷에 나온 크롤러 slug
+  asiae: "아시아경제",
+  bizchosun: "조선비즈",
+  bizheraldcorp: "헤럴드경제",
+  bizwatch: "비즈워치",
+  edaily: "이데일리",
+  fnnews: "파이낸셜뉴스",
+  hankyung: "한국경제",
+  joseilbo: "조세일보",
+  mk: "매일경제",
+  mt: "머니투데이",
+  sedaily: "서울경제"
+}
+
 function hashToInt(str: string) {
   let h = 2166136261
   for (let i = 0; i < str.length; i++) {
@@ -566,7 +581,7 @@ export function RealtimeNews() {
   }
 
   return (
-    <Card className="bg-card border-border overflow-hidden">
+    <Card className="bg-card border-border overflow-hidden py-0">
       <CardContent className="p-0">
         {/* Header */}
         <div className="px-4 pt-4 pb-3 border-b border-border from-muted/20 to-transparent">
@@ -1097,7 +1112,7 @@ export function RealtimeNews() {
                       </div>
 
                       <div className="mt-2 flex items-center justify-between gap-2">
-                        <span className="text-[11px] text-muted-foreground truncate max-w-[50%]">{news.source}</span>
+                        <span className="text-[11px] text-muted-foreground truncate max-w-[50%]">{SOURCE_KO_MAP[news.source]}</span>
 
                         <div className="flex items-center gap-1.5">
                           {news.relatedStocks?.length > 0 ? (
@@ -1177,7 +1192,7 @@ export function RealtimeNews() {
                           </Badge>
                           {getSentimentBadge(news.sentiment)}
                           <span className="text-[11px] text-muted-foreground ml-1 truncate max-w-[140px]">
-                            {news.source}
+                            {SOURCE_KO_MAP[news.source]}
                           </span>
                         </div>
                       </TableCell>

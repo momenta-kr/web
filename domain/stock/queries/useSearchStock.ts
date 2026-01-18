@@ -7,6 +7,6 @@ export function useSearchStock(query: string) {
     queryFn: () => searchStock(query),
     enabled: query.length > 0,
     retry: 1,
-    placeholderData: keepPreviousData,
+    placeholderData: keepPreviousData
   })
 }
