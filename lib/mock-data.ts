@@ -1003,3 +1003,255 @@ export function generateNewsCluster(stockName: string): {
 
   return clusters.sort(() => Math.random() - 0.5).slice(0, 3)
 }
+
+// 테마 Mock 데이터 (300개 테마 중 샘플)
+export const themeCategories = ["산업", "정책", "기술", "이슈", "지역", "기타"] as const
+
+export const themesData: {
+  id: string
+  name: string
+  description: string
+  stockCount: number
+  avgChangePercent: number
+  totalMarketCap: string
+  momentum: "hot" | "rising" | "stable" | "cooling" | "cold"
+  category: "산업" | "정책" | "기술" | "이슈" | "지역" | "기타"
+  relatedThemes: string[]
+  topStocks: { ticker: string; name: string; changePercent: number; weight: number }[]
+}[] = [
+  {
+    id: "theme-001",
+    name: "AI 반도체",
+    description: "인공지능 연산에 특화된 반도체 설계 및 제조 기업",
+    stockCount: 24,
+    avgChangePercent: 4.52,
+    totalMarketCap: "892.4조",
+    momentum: "hot",
+    category: "기술",
+    relatedThemes: ["HBM", "GPU", "데이터센터"],
+    topStocks: [
+      { ticker: "005930", name: "삼성전자", changePercent: 7.99, weight: 52.4 },
+      { ticker: "000660", name: "SK하이닉스", changePercent: 7.14, weight: 11.6 },
+      { ticker: "042700", name: "한미반도체", changePercent: 5.23, weight: 2.1 },
+    ],
+  },
+  {
+    id: "theme-002",
+    name: "2차전지",
+    description: "전기차 및 ESS용 배터리 제조 및 소재 기업",
+    stockCount: 45,
+    avgChangePercent: -1.82,
+    totalMarketCap: "245.6조",
+    momentum: "cooling",
+    category: "산업",
+    relatedThemes: ["전기차", "양극재", "음극재", "ESS"],
+    topStocks: [
+      { ticker: "373220", name: "LG에너지솔루션", changePercent: -5.64, weight: 35.1 },
+      { ticker: "006400", name: "삼성SDI", changePercent: 5.64, weight: 11.5 },
+      { ticker: "247540", name: "에코프로비엠", changePercent: 3.59, weight: 9.7 },
+    ],
+  },
+  {
+    id: "theme-003",
+    name: "HBM",
+    description: "고대역폭 메모리(High Bandwidth Memory) 관련 기업",
+    stockCount: 12,
+    avgChangePercent: 6.78,
+    totalMarketCap: "612.3조",
+    momentum: "hot",
+    category: "기술",
+    relatedThemes: ["AI 반도체", "데이터센터", "GPU"],
+    topStocks: [
+      { ticker: "000660", name: "SK하이닉스", changePercent: 7.14, weight: 68.2 },
+      { ticker: "005930", name: "삼성전자", changePercent: 7.99, weight: 22.5 },
+    ],
+  },
+  {
+    id: "theme-004",
+    name: "바이오시밀러",
+    description: "바이오의약품 복제약 개발 및 생산 기업",
+    stockCount: 18,
+    avgChangePercent: -2.15,
+    totalMarketCap: "78.4조",
+    momentum: "cooling",
+    category: "산업",
+    relatedThemes: ["바이오", "제약", "CMO"],
+    topStocks: [
+      { ticker: "068270", name: "셀트리온", changePercent: -4.26, weight: 29.1 },
+      { ticker: "207940", name: "삼성바이오로직스", changePercent: -4.63, weight: 70.9 },
+    ],
+  },
+  {
+    id: "theme-005",
+    name: "금리인하 수혜",
+    description: "금리 인하 시 수혜가 예상되는 금융/부동산 기업",
+    stockCount: 32,
+    avgChangePercent: 1.24,
+    totalMarketCap: "156.8조",
+    momentum: "rising",
+    category: "정책",
+    relatedThemes: ["금융", "부동산", "리츠"],
+    topStocks: [
+      { ticker: "105560", name: "KB금융", changePercent: 1.22, weight: 15.4 },
+      { ticker: "055550", name: "신한지주", changePercent: 0.85, weight: 12.8 },
+    ],
+  },
+  {
+    id: "theme-006",
+    name: "전기차",
+    description: "전기차 완성차 및 부품 제조 기업",
+    stockCount: 38,
+    avgChangePercent: 2.35,
+    totalMarketCap: "198.2조",
+    momentum: "stable",
+    category: "산업",
+    relatedThemes: ["2차전지", "자율주행", "모빌리티"],
+    topStocks: [
+      { ticker: "005380", name: "현대차", changePercent: 2.11, weight: 26.0 },
+      { ticker: "000270", name: "기아", changePercent: 2.5, weight: 20.1 },
+    ],
+  },
+  {
+    id: "theme-007",
+    name: "K-콘텐츠",
+    description: "한류 콘텐츠 제작 및 유통 기업",
+    stockCount: 22,
+    avgChangePercent: 3.12,
+    totalMarketCap: "45.6조",
+    momentum: "rising",
+    category: "이슈",
+    relatedThemes: ["엔터테인먼트", "OTT", "게임"],
+    topStocks: [
+      { ticker: "041510", name: "에스엠", changePercent: 3.88, weight: 4.4 },
+      { ticker: "352820", name: "하이브", changePercent: 2.15, weight: 21.5 },
+    ],
+  },
+  {
+    id: "theme-008",
+    name: "로봇",
+    description: "산업용/서비스용 로봇 개발 및 제조 기업",
+    stockCount: 28,
+    avgChangePercent: 5.67,
+    totalMarketCap: "32.4조",
+    momentum: "hot",
+    category: "기술",
+    relatedThemes: ["자동화", "AI", "스마트팩토리"],
+    topStocks: [
+      { ticker: "267260", name: "HD현대로보틱스", changePercent: 8.21, weight: 18.5 },
+      { ticker: "090460", name: "비에이치", changePercent: 4.52, weight: 5.2 },
+    ],
+  },
+  {
+    id: "theme-009",
+    name: "원전",
+    description: "원자력 발전소 건설 및 부품 공급 기업",
+    stockCount: 15,
+    avgChangePercent: 4.89,
+    totalMarketCap: "28.7조",
+    momentum: "hot",
+    category: "정책",
+    relatedThemes: ["에너지", "SMR", "탈탄소"],
+    topStocks: [
+      { ticker: "009830", name: "한화솔루션", changePercent: 3.45, weight: 22.1 },
+      { ticker: "034020", name: "두산에너빌리티", changePercent: 6.78, weight: 35.2 },
+    ],
+  },
+  {
+    id: "theme-010",
+    name: "방산",
+    description: "방위산업 관련 장비 및 시스템 제조 기업",
+    stockCount: 19,
+    avgChangePercent: 1.56,
+    totalMarketCap: "62.3조",
+    momentum: "stable",
+    category: "정책",
+    relatedThemes: ["항공", "조선", "우주항공"],
+    topStocks: [
+      { ticker: "012450", name: "한화에어로스페이스", changePercent: 2.34, weight: 42.1 },
+      { ticker: "047810", name: "한국항공우주", changePercent: 1.12, weight: 28.5 },
+    ],
+  },
+  {
+    id: "theme-011",
+    name: "플랫폼",
+    description: "인터넷 플랫폼 서비스 운영 기업",
+    stockCount: 16,
+    avgChangePercent: -1.85,
+    totalMarketCap: "89.2조",
+    momentum: "cooling",
+    category: "기술",
+    relatedThemes: ["인터넷", "커머스", "핀테크"],
+    topStocks: [
+      { ticker: "035420", name: "NAVER", changePercent: -6.41, weight: 33.5 },
+      { ticker: "035720", name: "카카오", changePercent: 4.67, weight: 24.0 },
+    ],
+  },
+  {
+    id: "theme-012",
+    name: "조선",
+    description: "선박 건조 및 해양플랜트 제조 기업",
+    stockCount: 14,
+    avgChangePercent: 3.42,
+    totalMarketCap: "45.8조",
+    momentum: "rising",
+    category: "산업",
+    relatedThemes: ["LNG", "해운", "방산"],
+    topStocks: [
+      { ticker: "009540", name: "HD한국조선해양", changePercent: 4.12, weight: 38.2 },
+      { ticker: "010140", name: "삼성중공업", changePercent: 2.89, weight: 22.4 },
+    ],
+  },
+]
+
+// 테마별 종목 상세 데이터 생성
+export function generateThemeStocks(themeId: string): {
+  ticker: string
+  name: string
+  price: number
+  changePercent: number
+  volume: number
+  marketCap: string
+  themeWeight: number
+}[] {
+  const theme = themesData.find((t) => t.id === themeId)
+  if (!theme) return []
+
+  // 기본 종목 + 추가 종목 생성
+  const stocks = theme.topStocks.map((s) => {
+    const stockData = stocksData.find((sd) => sd.ticker === s.ticker)
+    return {
+      ticker: s.ticker,
+      name: s.name,
+      price: stockData?.price || Math.floor(Math.random() * 100000 + 10000),
+      changePercent: s.changePercent,
+      volume: stockData?.volume || Math.floor(Math.random() * 5000000 + 100000),
+      marketCap: stockData?.marketCap || `${(Math.random() * 10 + 1).toFixed(1)}조`,
+      themeWeight: s.weight,
+    }
+  })
+
+  // 추가 종목 생성 (테마의 stockCount 만큼)
+  const additionalCount = Math.min(theme.stockCount - stocks.length, 10)
+  for (let i = 0; i < additionalCount; i++) {
+    stocks.push({
+      ticker: `${100000 + i}`,
+      name: `${theme.name} 관련주 ${i + 1}`,
+      price: Math.floor(Math.random() * 50000 + 5000),
+      changePercent: Number((Math.random() * 10 - 5).toFixed(2)),
+      volume: Math.floor(Math.random() * 2000000 + 50000),
+      marketCap: `${(Math.random() * 5 + 0.5).toFixed(1)}조`,
+      themeWeight: Number((Math.random() * 5 + 0.5).toFixed(1)),
+    })
+  }
+
+  return stocks.sort((a, b) => b.themeWeight - a.themeWeight)
+}
+
+// 테마 통계 데이터
+export const themeStats = {
+  totalThemes: 300,
+  totalStocks: 900,
+  hotThemes: 42,
+  risingThemes: 85,
+  avgStocksPerTheme: 3,
+}

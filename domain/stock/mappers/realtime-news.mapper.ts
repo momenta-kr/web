@@ -9,6 +9,10 @@ export function toRealtimeNews(data: RealtimeNewsDto) {
     source: data.source,
     url: data.url,
     crawledAt: new Date(data.crawledAt),
+    safeBrief: data.safeBrief,
+    sentiment: data.sentiment,
+    category: data.category,
+    relatedStock: data.relatedStock,
   };
 }
 

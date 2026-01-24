@@ -10,6 +10,7 @@ import { SectorIndices } from "@/components/radar/sector-indices"
 import { MarketNewsFeed } from "@/components/radar/market-news"
 import { useMarketState } from "@/lib/store"
 import {RealtimeNews} from "@/components/radar/realtime-news";
+import {ThemeExplorer} from "@/components/radar/theme-explorer";
 
 export function MarketRadarDashboard() {
   const { market, timeRange, setMarket } = useMarketState()
@@ -27,6 +28,7 @@ export function MarketRadarDashboard() {
             <MarketOverview market={market} />
             <RealtimeNews />
             <SectorIndices />
+            <ThemeExplorer />
             <PriceMovers market={market} />
 
           </div>

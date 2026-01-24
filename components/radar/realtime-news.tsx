@@ -1,6 +1,7 @@
+// app/(whatever)/components/RealtimeNews.tsx
 "use client"
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react"
+import { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,18 +21,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRealtimeNews } from "@/domain/stock/queries/useRealtimeNews"
-
-// =========================
-// Server DTO
-// =========================
-export type RealtimeNewsDto = {
-  newsId: string
-  title: string
-  description: string
-  source: string
-  url: string
-  crawledAt: Date | string
-}
+import type { RealtimeNews as RealtimeNewsModel } from "@/domain/stock/types/realtime-news.model"
 
 type Sentiment = "positive" | "negative" | "neutral"
 type Category = "경제" | "산업" | "정책" | "글로벌" | "기업"
@@ -77,41 +67,18 @@ const truncate = (s: string, max = 70) => {
   return text.length > max ? `${text.slice(0, max)}…` : text
 }
 
-const guessSentiment = (title: string, desc?: string): Sentiment => {
-  const text = `${title} ${desc ?? ""}`
-  const pos = ["급등", "호재", "상승", "개선", "확대", "수혜", "돌파", "성장", "양산", "투자", "흑자", "매출증가"]
-  const neg = ["급락", "악재", "하락", "리콜", "불확실", "규제", "적자", "감소", "중단", "사고", "위험", "소송", "감사", "경고"]
-
-  const hasPos = pos.some((k) => text.includes(k))
-  const hasNeg = neg.some((k) => text.includes(k))
-  if (hasPos && !hasNeg) return "positive"
-  if (hasNeg && !hasPos) return "negative"
+const normalizeSentiment = (v: string | undefined | null): Sentiment => {
+  if (v === "positive" || v === "negative" || v === "neutral") return v
   return "neutral"
 }
 
-const guessCategory = (title: string, desc?: string): Category => {
-  const text = `${title} ${desc ?? ""}`
-
-  if (["금리", "환율", "물가", "CPI", "PPI", "고용", "GDP", "연준", "Fed", "파월"].some((k) => text.includes(k)))
-    return "경제"
-
-  if (["규제", "정책", "법안", "IRA", "보조금", "관세", "행정명령", "국회", "정부"].some((k) => text.includes(k)))
-    return "정책"
-
-  if (["미국", "中", "중국", "일본", "유럽", "EU", "글로벌", "해외", "수출", "수입", "관세"].some((k) => text.includes(k)))
-    return "글로벌"
-
-  if (
-    ["반도체", "2차전지", "전기차", "AI", "바이오", "헬스케어", "원전", "방산", "조선", "철강", "화학", "게임", "플랫폼", "클라우드"].some((k) =>
-      text.includes(k),
-    )
-  )
-    return "산업"
-
+const normalizeCategory = (v: string | undefined | null): Category => {
+  if (v === "경제" || v === "산업" || v === "정책" || v === "글로벌" || v === "기업") return v
   return "기업"
 }
 
 const isBreakingByText = (title: string) => {
+  if (!title) return false
   return title.includes("속보") || title.includes("긴급") || title.includes("리콜") || title.includes("사고")
 }
 
@@ -165,39 +132,7 @@ const rangeMs: Record<TimeRange, number> = {
 }
 const RANGE_LABEL: Record<TimeRange, string> = { day: "일", week: "주", month: "월", year: "년" }
 
-// =========================
-// Mock relatedStocks
-// =========================
-const MOCK_STOCKS = [
-  { ticker: "005930", name: "삼성전자" },
-  { ticker: "000660", name: "SK하이닉스" },
-  { ticker: "035420", name: "NAVER" },
-  { ticker: "035720", name: "카카오" },
-  { ticker: "005380", name: "현대차" },
-  { ticker: "000270", name: "기아" },
-  { ticker: "051910", name: "LG화학" },
-  { ticker: "006400", name: "삼성SDI" },
-  { ticker: "373220", name: "LG에너지솔루션" },
-  { ticker: "068270", name: "셀트리온" },
-  { ticker: "207940", name: "삼성바이오로직스" },
-  { ticker: "259960", name: "크래프톤" },
-  { ticker: "096770", name: "SK이노베이션" },
-  { ticker: "028260", name: "삼성물산" },
-  { ticker: "055550", name: "신한지주" },
-]
-
-const KEYWORD_TO_STOCKS: Array<{ keys: string[]; picks: string[] }> = [
-  { keys: ["반도체", "HBM", "메모리", "DRAM", "NAND", "파운드리"], picks: ["005930", "000660"] },
-  { keys: ["AI", "클라우드", "플랫폼", "검색", "메신저"], picks: ["035420", "035720"] },
-  { keys: ["2차전지", "배터리", "전기차", "IRA"], picks: ["373220", "006400", "051910", "096770"] },
-  { keys: ["바이오", "의약", "임상", "신약"], picks: ["068270", "207940"] },
-  { keys: ["게임", "콘솔", "신작"], picks: ["259960"] },
-  { keys: ["자동차", "전기차", "모빌리티", "판매"], picks: ["005380", "000270"] },
-  { keys: ["은행", "금리", "대출", "예대마진"], picks: ["055550"] },
-]
-
 const SOURCE_KO_MAP: Record<string, string> = {
-  // ✅ 스샷에 나온 크롤러 slug
   asiae: "아시아경제",
   bizchosun: "조선비즈",
   bizheraldcorp: "헤럴드경제",
@@ -208,53 +143,7 @@ const SOURCE_KO_MAP: Record<string, string> = {
   joseilbo: "조세일보",
   mk: "매일경제",
   mt: "머니투데이",
-  sedaily: "서울경제"
-}
-
-function hashToInt(str: string) {
-  let h = 2166136261
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i)
-    h = Math.imul(h, 16777619)
-  }
-  return Math.abs(h >>> 0)
-}
-
-function pickN<T>(arr: T[], n: number, seed: number) {
-  if (arr.length <= n) return arr
-  const out: T[] = []
-  let s = seed
-  const used = new Set<number>()
-  while (out.length < n && used.size < arr.length) {
-    s = (s * 1664525 + 1013904223) >>> 0
-    const idx = s % arr.length
-    if (used.has(idx)) continue
-    used.add(idx)
-    out.push(arr[idx])
-  }
-  return out
-}
-
-function mockRelatedStocks(dto: RealtimeNewsDto): { ticker: string; name: string }[] {
-  const text = `${dto.title} ${dto.description ?? ""} ${dto.source ?? ""}`
-  const matchedTickers = new Set<string>()
-
-  for (const rule of KEYWORD_TO_STOCKS) {
-    if (rule.keys.some((k) => text.includes(k))) rule.picks.forEach((t) => matchedTickers.add(t))
-  }
-
-  const seed = hashToInt(dto.newsId + dto.title)
-
-  if (matchedTickers.size > 0) {
-    const candidates = Array.from(matchedTickers)
-      .map((t) => MOCK_STOCKS.find((s) => s.ticker === t))
-      .filter(Boolean) as { ticker: string; name: string }[]
-    return pickN(candidates, Math.min(3, candidates.length), seed)
-  }
-
-  const count = seed % 3 // 0~2
-  if (count === 0) return []
-  return pickN(MOCK_STOCKS, count, seed)
+  sedaily: "서울경제",
 }
 
 // =========================
@@ -264,15 +153,7 @@ function Separator() {
   return <span className="mx-1.5 text-muted-foreground/40 select-none">•</span>
 }
 
-function Pill({
-                active,
-                onClick,
-                children,
-              }: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
+function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
     <button
       type="button"
@@ -371,22 +252,20 @@ function SentimentStackBar({
 }
 
 // =========================
-// Mapper
+// Mapper (REAL DATA)
 // =========================
-const mapDtoToUi = (dto: RealtimeNewsDto): RealtimeNewsUi => {
-  const sentiment = guessSentiment(dto.title, dto.description)
-  const category = guessCategory(dto.title, dto.description)
+const mapModelToUi = (n: RealtimeNewsModel): RealtimeNewsUi => {
   return {
-    id: dto.newsId,
-    title: dto.title,
-    source: dto.source,
-    timestamp: toEpochMs(dto.crawledAt),
-    sentiment,
-    relatedStocks: mockRelatedStocks(dto),
-    aiSummary: dto.description || "요약 준비 중",
-    category,
-    isBreaking: isBreakingByText(dto.title),
-    url: dto.url,
+    id: n.newsId,
+    title: n.title,
+    source: n.source,
+    timestamp: toEpochMs(n.crawledAt as any),
+    sentiment: normalizeSentiment(n.sentiment),
+    relatedStocks: (n.relatedStock ?? []).map((s) => ({ ticker: s.stockCode, name: s.name })),
+    aiSummary: (n.safeBrief ?? "").trim() || "요약 준비 중",
+    category: normalizeCategory(n.category),
+    isBreaking: isBreakingByText(n.title),
+    url: n.url,
   }
 }
 
@@ -417,8 +296,7 @@ function sortTopStocks(arr: StockAgg[], sort: TopSort) {
 }
 
 export function RealtimeNews() {
-  const { data } = useRealtimeNews()
-  const safeData: RealtimeNewsDto[] = Array.isArray(data) ? (data as any) : []
+  const { data = [] } = useRealtimeNews()
 
   const [nowMs, setNowMs] = useState(() => Date.now())
   useEffect(() => {
@@ -434,12 +312,12 @@ export function RealtimeNews() {
   const [stockFocus, setStockFocus] = useState<string | null>(null)
   const [showTopNumbers, setShowTopNumbers] = useState(false)
 
-  // Top panel (대량 대응)
+  // Top panel
   const [topOpen, setTopOpen] = useState(false)
   const [topQuery, setTopQuery] = useState("")
   const deferredTopQuery = useDeferredValue(topQuery)
   const [topSort, setTopSort] = useState<TopSort>("total")
-  const [topLimit, setTopLimit] = useState(80) // ✅ 대량일 때도 초기 렌더 부담 줄이기
+  const [topLimit, setTopLimit] = useState(80)
 
   useEffect(() => {
     if (!topOpen) {
@@ -450,10 +328,9 @@ export function RealtimeNews() {
   }, [topOpen])
 
   const serverNews: RealtimeNewsUi[] = useMemo(() => {
-    return safeData.map(mapDtoToUi).sort((a, b) => b.timestamp - a.timestamp)
-  }, [safeData])
+    return (data ?? []).map(mapModelToUi).sort((a, b) => b.timestamp - a.timestamp)
+  }, [data])
 
-  // ✅ 실제 리스트 필터(사용자 설정 그대로 반영)
   const filteredNews = useMemo(() => {
     const start = nowMs - rangeMs[timeRange]
     const query = q.trim().toLowerCase()
@@ -488,7 +365,7 @@ export function RealtimeNews() {
     })
   }, [serverNews, nowMs, timeRange, sentimentFilter, categoryFilter, q, stockFocus])
 
-  // ✅ TOP 집계는 “기간/카테고리/검색”까지만 반영(=시장 분위기용)
+  // Top 집계는 기간/카테고리/검색까지만 반영
   const newsForTopStocks = useMemo(() => {
     const start = nowMs - rangeMs[timeRange]
     const query = q.trim().toLowerCase()
@@ -514,7 +391,6 @@ export function RealtimeNews() {
     })
   }, [serverNews, nowMs, timeRange, categoryFilter, q])
 
-  // ✅ allTopStocks: slice 없이 “전체”를 만들고, UI에서 단계적으로 보여줌
   const allTopStocks = useMemo((): StockAgg[] => {
     const map = new Map<string, StockAgg>()
 
@@ -557,13 +433,10 @@ export function RealtimeNews() {
         return name.includes(qv) || ticker.includes(qv)
       })
 
-    const sorted = sortTopStocks(filtered, topSort)
-    return sorted
+    return sortTopStocks(filtered, topSort)
   }, [allTopStocks, deferredTopQuery, topSort])
 
-  const topStocksVisible = useMemo(() => {
-    return topStocksForPanel.slice(0, topLimit)
-  }, [topStocksForPanel, topLimit])
+  const topStocksVisible = useMemo(() => topStocksForPanel.slice(0, topLimit), [topStocksForPanel, topLimit])
 
   const headerCountText = useMemo(() => {
     const total = serverNews.length
@@ -662,7 +535,7 @@ export function RealtimeNews() {
                 </div>
               </div>
 
-              {/* Filters - no labels, only separators */}
+              {/* Filters */}
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
                 <div className="flex flex-wrap items-center gap-1.5">
                   {(Object.keys(RANGE_LABEL) as TimeRange[]).map((r) => (
@@ -703,7 +576,7 @@ export function RealtimeNews() {
                 </div>
               </div>
 
-              {/* Top Stocks (large-scale friendly UI) */}
+              {/* Top Stocks */}
               <div className="mt-1 rounded-lg border border-border/60 bg-muted/10 p-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
@@ -811,7 +684,6 @@ export function RealtimeNews() {
                     <div className="text-[11px] text-muted-foreground">아직 집계할 데이터가 없어요.</div>
                   )}
 
-                  {/* ✅ 미리보기만 보여주고 끝내지 말고, 큰 데이터일 때도 항상 접근 가능하게 */}
                   {allTopStocks.length > 10 && (
                     <button
                       type="button"
@@ -840,14 +712,9 @@ export function RealtimeNews() {
           </div>
         </div>
 
-        {/* ✅ Top Stocks Panel (대량 대응: 검색 + 정렬 + 점진 로딩) */}
+        {/* Top Stocks Panel */}
         {topOpen && (
-          <div
-            className="fixed inset-0 z-[60]"
-            role="dialog"
-            aria-modal="true"
-            onClick={() => setTopOpen(false)}
-          >
+          <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" onClick={() => setTopOpen(false)}>
             <div className="absolute inset-0 bg-black/40" />
             <div
               className={cn(
@@ -857,7 +724,6 @@ export function RealtimeNews() {
               )}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Panel header (sticky feel) */}
               <div className="p-4 border-b border-border">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -867,9 +733,7 @@ export function RealtimeNews() {
                         {topStocksForPanel.length.toLocaleString("ko-KR")}개
                       </Badge>
                     </div>
-                    <div className="text-[11px] text-muted-foreground mt-0.5">
-                      클릭하면 해당 종목으로 뉴스가 필터링돼요
-                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">클릭하면 해당 종목으로 뉴스가 필터링돼요</div>
                   </div>
 
                   <button
@@ -882,7 +746,6 @@ export function RealtimeNews() {
                   </button>
                 </div>
 
-                {/* Search */}
                 <div className="mt-3 flex items-center gap-2">
                   <div className="relative flex-1 min-w-0">
                     <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -890,7 +753,7 @@ export function RealtimeNews() {
                       value={topQuery}
                       onChange={(e) => {
                         setTopQuery(e.target.value)
-                        setTopLimit(80) // ✅ 검색 시 처음부터 과도 렌더 방지
+                        setTopLimit(80)
                       }}
                       placeholder="종목명/티커 검색"
                       className={cn(
@@ -915,7 +778,6 @@ export function RealtimeNews() {
                   </div>
                 </div>
 
-                {/* Sort */}
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   <span className="text-[11px] text-muted-foreground mr-1">정렬</span>
                   <Pill active={topSort === "total"} onClick={() => setTopSort("total")}>
@@ -942,7 +804,6 @@ export function RealtimeNews() {
                 </div>
               </div>
 
-              {/* List */}
               <div className="flex-1 overflow-y-auto">
                 <div className="p-4 space-y-2">
                   {topStocksVisible.map((s) => {
@@ -970,9 +831,7 @@ export function RealtimeNews() {
                               <Badge variant="outline" className="text-[11px] tabular-nums">
                                 {s.total}건
                               </Badge>
-                              {s.ticker && (
-                                <span className="text-[11px] text-muted-foreground tabular-nums">{s.ticker}</span>
-                              )}
+                              {s.ticker && <span className="text-[11px] text-muted-foreground tabular-nums">{s.ticker}</span>}
                             </div>
                             <div className="mt-1 text-[11px] text-muted-foreground">
                               호재 {s.positive} · 악재 {s.negative} · 중립 {s.neutral}
@@ -1014,15 +873,9 @@ export function RealtimeNews() {
                     </div>
                   )}
 
-                  {/* ✅ 점진 로딩: 종목이 수백/수천이어도 UI 버벅임 최소화 */}
                   {topStocksForPanel.length > topLimit && (
                     <div className="pt-2 flex items-center justify-center">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="h-9"
-                        onClick={() => setTopLimit((v) => v + 120)}
-                      >
+                      <Button type="button" variant="secondary" className="h-9" onClick={() => setTopLimit((v) => v + 120)}>
                         더 보기 ({Math.min(topLimit, topStocksForPanel.length).toLocaleString("ko-KR")} /{" "}
                         {topStocksForPanel.length.toLocaleString("ko-KR")})
                       </Button>
@@ -1030,14 +883,11 @@ export function RealtimeNews() {
                   )}
 
                   {topStocksForPanel.length > 400 && (
-                    <div className="pt-2 text-center text-[11px] text-muted-foreground">
-                      팁: 검색을 쓰면 더 빠르게 찾을 수 있어요.
-                    </div>
+                    <div className="pt-2 text-center text-[11px] text-muted-foreground">팁: 검색을 쓰면 더 빠르게 찾을 수 있어요.</div>
                   )}
                 </div>
               </div>
 
-              {/* Panel footer */}
               <div className="p-4 border-t border-border flex items-center justify-between gap-2">
                 <Button
                   type="button"
@@ -1062,10 +912,7 @@ export function RealtimeNews() {
         <div className="p-4">
           {/* Mobile */}
           <div className="md:hidden">
-            <div
-              className={cn("space-y-2", "max-h-[60vh] overflow-y-auto overscroll-contain", "pr-1")}
-              style={{ WebkitOverflowScrolling: "touch" }}
-            >
+            <div className={cn("space-y-2", "max-h-[60vh] overflow-y-auto overscroll-contain", "pr-1")} style={{ WebkitOverflowScrolling: "touch" }}>
               {filteredNews.map((news) => (
                 <a
                   key={news.id}
@@ -1112,17 +959,15 @@ export function RealtimeNews() {
                       </div>
 
                       <div className="mt-2 flex items-center justify-between gap-2">
-                        <span className="text-[11px] text-muted-foreground truncate max-w-[50%]">{SOURCE_KO_MAP[news.source]}</span>
+                        <span className="text-[11px] text-muted-foreground truncate max-w-[50%]">
+                          {SOURCE_KO_MAP[news.source] ?? news.source}
+                        </span>
 
                         <div className="flex items-center gap-1.5">
                           {news.relatedStocks?.length > 0 ? (
                             <div className="flex flex-wrap gap-1 justify-end">
                               {news.relatedStocks.slice(0, 2).map((stock) => (
-                                <Link
-                                  key={stock.ticker}
-                                  href={`/stock/${stock.ticker}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
+                                <Link key={stock.ticker} href={`/stock/${stock.ticker}`} onClick={(e) => e.stopPropagation()}>
                                   <Badge variant="outline" className="text-[11px] px-1.5 py-0 hover:bg-primary/10">
                                     {stock.name}
                                   </Badge>
@@ -1142,9 +987,7 @@ export function RealtimeNews() {
               ))}
 
               {filteredNews.length === 0 && (
-                <div className="rounded-xl border bg-background p-10 text-center text-sm text-muted-foreground">
-                  조건에 맞는 뉴스가 없어요.
-                </div>
+                <div className="rounded-xl border bg-background p-10 text-center text-sm text-muted-foreground">조건에 맞는 뉴스가 없어요.</div>
               )}
             </div>
           </div>
@@ -1164,12 +1007,8 @@ export function RealtimeNews() {
                     </TableHead>
                     <TableHead className="sticky top-0 z-10 bg-background w-[260px] px-2 py-2">분류</TableHead>
                     <TableHead className="sticky top-0 z-10 bg-background px-2 py-2">제목 / 요약</TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background w-[240px] px-2 py-2">
-                      관련 종목
-                    </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background w-[72px] px-2 py-2 text-right">
-                      원문
-                    </TableHead>
+                    <TableHead className="sticky top-0 z-10 bg-background w-[240px] px-2 py-2">관련 종목</TableHead>
+                    <TableHead className="sticky top-0 z-10 bg-background w-[72px] px-2 py-2 text-right">원문</TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -1192,7 +1031,7 @@ export function RealtimeNews() {
                           </Badge>
                           {getSentimentBadge(news.sentiment)}
                           <span className="text-[11px] text-muted-foreground ml-1 truncate max-w-[140px]">
-                            {SOURCE_KO_MAP[news.source]}
+                            {SOURCE_KO_MAP[news.source] ?? news.source}
                           </span>
                         </div>
                       </TableCell>
@@ -1216,10 +1055,7 @@ export function RealtimeNews() {
                           {news.relatedStocks.length > 0 ? (
                             news.relatedStocks.slice(0, 4).map((stock) => (
                               <Link key={stock.ticker} href={`/stock/${stock.ticker}`}>
-                                <Badge
-                                  variant="outline"
-                                  className="text-[11px] px-1.5 py-0 hover:bg-primary/10 cursor-pointer"
-                                >
+                                <Badge variant="outline" className="text-[11px] px-1.5 py-0 hover:bg-primary/10 cursor-pointer">
                                   {stock.name}
                                 </Badge>
                               </Link>
@@ -1231,12 +1067,7 @@ export function RealtimeNews() {
                       </TableCell>
 
                       <TableCell className="px-2 py-2 align-top text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary"
-                          asChild
-                        >
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary" asChild>
                           <a href={news.url} target="_blank" rel="noopener noreferrer">
                             <span className="hidden sm:inline">원문</span>
                             <ExternalLink className="h-3 w-3" />

@@ -4,5 +4,16 @@ export interface RealtimeNewsDto {
   description: string;
   source: string;
   url: string;
-  crawledAt: Date
+  crawledAt: Date,
+
+  safeBrief: string,
+  sentiment: string,
+  category: string,
+  relatedStock: RelatedStock[]
 }
+
+export interface RelatedStock {
+  stockCode: string;
+  name: string;
+}
+
