@@ -340,7 +340,7 @@ export function RealtimeNews() {
       if (sentimentFilter !== "all" && n.sentiment !== sentimentFilter) return false
       if (categoryFilter !== "all" && n.category !== categoryFilter) return false
 
-      if (stockFocus) {
+      if (stockFocus && n.title) {
         const hit =
           n.relatedStocks?.some((s) => s.ticker === stockFocus || s.name.includes(stockFocus)) ||
           n.title.includes(stockFocus) ||
