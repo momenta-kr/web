@@ -49,7 +49,7 @@ export function StockDetailModal({ ticker, onClose }: StockDetailModalProps) {
               <Button variant="ghost" size="icon">
                 <Bell className="h-4 w-4" />
               </Button>
-              <Link href={`/stock/${stock.ticker}`}>
+              <Link href={`/app/stock/${stock.ticker}`}>
                 <Button variant="ghost" size="icon">
                   <ExternalLink className="h-4 w-4" />
                 </Button>

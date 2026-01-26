@@ -17,24 +17,24 @@ export function MarketRadarDashboard() {
 
   return (
     <div className="min-h-screen">
-      <Header selectedMarket={market} onMarketChange={setMarket} />
+      <Header />
 
       {/* ✅ 모바일 여백 축소 */}
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <main className="px-3 sm:px-4 py-4 sm:py-6">
         {/* ✅ 모바일 gap 축소 */}
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-12">
           {/* Left Column */}
-          <div className="lg:col-span-8 space-y-10 min-w-0">
+          <div className="lg:col-span-9 space-y-10 min-w-0">
             <MarketOverview market={market} />
-            <RealtimeNews />
+
             <SectorIndices />
-            <ThemeExplorer />
+
             <PriceMovers market={market} />
 
           </div>
 
           {/* Right Column */}
-          <div className="lg:col-span-4 min-w-0">
+          <div className="lg:col-span-3 min-w-0">
             {/* ✅ 모바일에서는 sticky/스크롤 박스 OFF, lg부터 ON */}
             <div className="space-y-6 lg:sticky lg:top-20">
               {/*<MarketNewsFeed />*/}

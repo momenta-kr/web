@@ -150,7 +150,7 @@ const SOURCE_KO_MAP: Record<string, string> = {
 // UI helpers
 // =========================
 function Separator() {
-  return <span className="mx-1.5 text-muted-foreground/40 select-none">•</span>
+  return <span className="mx-2 text-muted-foreground/40 select-none">•</span>
 }
 
 function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
@@ -165,6 +165,28 @@ function Pill({ active, onClick, children }: { active: boolean; onClick: () => v
     >
       {children}
     </button>
+  )
+}
+
+function SectionCard({
+                       title,
+                       right,
+                       children,
+                       className,
+                     }: {
+  title: string
+  right?: ReactNode
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <div className={cn("rounded-xl border border-border bg-background", className)}>
+      <div className="px-3 py-2 border-b border-border flex items-center justify-between gap-2">
+        <div className="text-xs font-medium text-foreground">{title}</div>
+        {right}
+      </div>
+      <div className="p-3">{children}</div>
+    </div>
   )
 }
 
@@ -420,7 +442,8 @@ export function RealtimeNews() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total)
   }, [newsForTopStocks])
 
-  const topStocksPreview = useMemo(() => allTopStocks.slice(0, 10), [allTopStocks])
+  // 왼쪽 패널에서 더 많이 보여주기 (원하면 숫자만 조절)
+  const topStocksPreview = useMemo(() => allTopStocks.slice(0, 18), [allTopStocks])
 
   const topStocksForPanel = useMemo(() => {
     const qv = deferredTopQuery.trim().toLowerCase()
@@ -454,89 +477,99 @@ export function RealtimeNews() {
   }
 
   return (
-    <Card className="bg-card border-border overflow-hidden py-0">
-      <CardContent className="p-0">
-        {/* Header */}
-        <div className="px-4 pt-4 pb-3 border-b border-border from-muted/20 to-transparent">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-chart-4/15 flex items-center justify-center">
-                  <Zap className="h-4 w-4 text-chart-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-foreground">실시간 뉴스</h3>
-                    <Badge variant="secondary" className="bg-red-500/15 text-red-500 text-[11px]">
-                      LIVE
-                    </Badge>
-                    <Badge variant="outline" className="text-[11px] text-muted-foreground">
-                      {headerCountText}
-                    </Badge>
+    <section className="w-full" style={{ height: "calc(100dvh - var(--app-header-h, 64px))" }}>
+      <Card className="h-full border-border bg-card overflow-hidden">
+        <CardContent className="h-full p-0 flex flex-col min-h-0">
+          {/* ======= Top line ======= */}
+          <div className="px-4 py-3 border-b border-border bg-background/60">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-lg bg-chart-4/15 flex items-center justify-center shrink-0">
+                    <Zap className="h-4 w-4 text-chart-4" />
                   </div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">필터로 필요한 뉴스만 빠르게 보세요</div>
+
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-semibold text-foreground">실시간 뉴스</h3>
+                      <Badge variant="secondary" className="bg-red-500/15 text-red-500 text-[11px]">
+                        LIVE
+                      </Badge>
+                      <Badge variant="outline" className="text-[11px] text-muted-foreground">
+                        {headerCountText}
+                      </Badge>
+                    </div>
+
+                    {stockFocus && (
+                      <div className="mt-1">
+                        <Badge variant="outline" className="text-[11px] px-2 py-0 inline-flex items-center gap-1">
+                          종목: {stockFocus}
+                          <button
+                            type="button"
+                            className="ml-1 inline-flex items-center text-muted-foreground hover:text-foreground"
+                            onClick={() => setStockFocus(null)}
+                            aria-label="clear stock focus"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {stockFocus && (
-                <div className="mt-2">
-                  <Badge variant="outline" className="text-[11px] px-2 py-0 inline-flex items-center gap-1">
-                    종목: {stockFocus}
-                    <button
-                      type="button"
-                      className="ml-1 inline-flex items-center text-muted-foreground hover:text-foreground"
-                      onClick={() => setStockFocus(null)}
-                      aria-label="clear stock focus"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                </div>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                <Button variant="secondary" size="sm" className="h-8" onClick={clearAll}>
+                  초기화
+                </Button>
+              </div>
             </div>
 
-            <Button variant="secondary" size="sm" className="h-8" onClick={clearAll}>
-              초기화
-            </Button>
-          </div>
-
-          {/* Toolbar */}
-          <div className="mt-3 rounded-xl border border-border bg-background/60 p-3">
-            <div className="flex flex-col gap-2">
-              {/* Search */}
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1 min-w-0">
-                  <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder="검색: 제목/요약/출처/카테고리/종목"
-                    className={cn(
-                      "w-full h-9 rounded-lg border border-input bg-background pl-9 pr-9 text-sm",
-                      "placeholder:text-muted-foreground",
-                      "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                    )}
-                  />
-                  {q.trim().length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setQ("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      aria-label="clear search"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+            {/* Search */}
+            <div className="mt-3 flex items-center gap-2">
+              <div className="relative flex-1 min-w-0">
+                <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="검색: 제목/요약/출처/카테고리/종목"
+                  className={cn(
+                    "w-full h-9 rounded-lg border border-input bg-background pl-9 pr-9 text-sm",
+                    "placeholder:text-muted-foreground",
+                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                   )}
-                </div>
-
-                <div className="hidden sm:flex items-center gap-1 text-[11px] text-muted-foreground">
-                  <SlidersHorizontal className="h-4 w-4" />
-                  필터
-                </div>
+                />
+                {q.trim().length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setQ("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
 
-              {/* Filters */}
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
+              <Button variant="secondary" size="sm" className="h-9 px-3" onClick={() => setTopOpen(true)}>
+                TOP 종목
+              </Button>
+            </div>
+
+            {/* ======= Filters moved UP (상단) ======= */}
+            <div className="mt-3 rounded-xl border border-border bg-background p-3">
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <SlidersHorizontal className="h-4 w-4" />
+                필터
+                <span className="ml-auto">
+                  기준: {RANGE_LABEL[timeRange]}
+                  <span className="mx-1 text-muted-foreground/40">•</span>
+                  {categoryFilter === "all" ? "전체" : categoryFilter}
+                </span>
+              </div>
+
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <div className="flex flex-wrap items-center gap-1.5">
                   {(Object.keys(RANGE_LABEL) as TimeRange[]).map((r) => (
                     <Pill key={r} active={timeRange === r} onClick={() => setTimeRange(r)}>
@@ -575,61 +608,424 @@ export function RealtimeNews() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
 
-              {/* Top Stocks */}
-              <div className="mt-1 rounded-lg border border-border/60 bg-muted/10 p-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="text-xs font-medium text-foreground">TOP 종목</div>
-                    <Badge variant="outline" className="text-[11px] text-muted-foreground">
-                      {allTopStocks.length.toLocaleString("ko-KR")}종목
-                    </Badge>
+          {/* ======= Main layout: LEFT = TOP 종목 only, RIGHT = 뉴스 ======= */}
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[360px_1fr]">
+            {/* Left: Top stocks only */}
+            <aside className="min-h-0 border-b border-border lg:border-b-0 lg:border-r bg-background/40">
+              <div className="h-full min-h-0 overflow-y-auto p-4 space-y-3">
+                <SectionCard
+                  title="TOP 종목"
+                  right={
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowTopNumbers((v) => !v)}
+                        className="text-[11px] text-muted-foreground hover:text-foreground"
+                      >
+                        {showTopNumbers ? "숫자 숨김" : "숫자 보기"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTopOpen(true)}
+                        className="text-[11px] text-muted-foreground hover:text-foreground"
+                      >
+                        전체
+                      </button>
+                    </div>
+                  }
+                >
+                  <div className="text-[11px] text-muted-foreground mb-2">
+                    {allTopStocks.length.toLocaleString("ko-KR")}종목
+                    <span className="mx-1 text-muted-foreground/40">•</span>
+                    클릭하면 종목 필터
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <div className="hidden sm:flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-sm bg-red-500/70" /> 호재
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-sm bg-blue-500/70" /> 악재
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-sm bg-muted-foreground/40" /> 중립
-                      </span>
+                  <div className="space-y-2">
+                    {topStocksPreview.length > 0 ? (
+                      topStocksPreview.map((s) => {
+                        const label = s.name || s.ticker
+                        const isActive = stockFocus === s.ticker || stockFocus === s.name
+
+                        return (
+                          <button
+                            key={s.ticker || s.name}
+                            type="button"
+                            onClick={() => setStockFocus(s.ticker || s.name)}
+                            className={cn(
+                              "w-full rounded-xl border p-2 text-left transition",
+                              "bg-background hover:bg-muted/30",
+                              isActive && "border-foreground/30 ring-1 ring-foreground/20",
+                            )}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-medium truncate">{label}</span>
+                                  <Badge variant="outline" className="text-[11px] tabular-nums">
+                                    {s.total}건
+                                  </Badge>
+                                  {s.ticker && (
+                                    <span className="text-[11px] text-muted-foreground tabular-nums">{s.ticker}</span>
+                                  )}
+                                </div>
+
+                                <div className="mt-1">
+                                  <SentimentStackBar
+                                    positive={s.positive}
+                                    negative={s.negative}
+                                    neutral={s.neutral}
+                                    total={s.total}
+                                    showNumbers={showTopNumbers}
+                                    onClickPositive={() => {
+                                      setStockFocus(s.ticker || s.name)
+                                      setSentimentFilter("positive")
+                                    }}
+                                    onClickNegative={() => {
+                                      setStockFocus(s.ticker || s.name)
+                                      setSentimentFilter("negative")
+                                    }}
+                                    onClickNeutral={() => {
+                                      setStockFocus(s.ticker || s.name)
+                                      setSentimentFilter("neutral")
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })
+                    ) : (
+                      <div className="text-[11px] text-muted-foreground">아직 집계할 데이터가 없어요.</div>
+                    )}
+                  </div>
+
+                  {stockFocus && (
+                    <div className="mt-3">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="h-8 w-full"
+                        onClick={() => setStockFocus(null)}
+                      >
+                        종목 필터 해제
+                      </Button>
+                    </div>
+                  )}
+                </SectionCard>
+
+                <div className="rounded-xl border border-border bg-muted/10 p-3 text-[11px] text-muted-foreground">
+                  <div className="flex items-center justify-between gap-2">
+                    <span>현재 표시</span>
+                    <span className="tabular-nums">{filteredNews.length.toLocaleString("ko-KR")}건</span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span>전체 수신</span>
+                    <span className="tabular-nums">{serverNews.length.toLocaleString("ko-KR")}건</span>
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            {/* Right: News list/table */}
+            <div className="min-h-0">
+              {/* Mobile / Tablet: 카드 리스트 */}
+              <div className="lg:hidden h-full min-h-0 overflow-y-auto overscroll-contain p-4 space-y-2">
+                {filteredNews.map((news) => (
+                  <a
+                    key={news.id}
+                    href={news.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "block rounded-xl border bg-background p-3 transition",
+                      "hover:bg-muted/40 active:bg-muted/50",
+                      "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                      news.isBreaking && "border-chart-4/40 bg-chart-4/5",
+                    )}
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="pt-0.5 shrink-0">{getSentimentIcon(news.sentiment)}</div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {news.isBreaking && (
+                              <Badge className="bg-chart-4 text-white text-[11px] px-1.5 py-0 animate-pulse">
+                                속보
+                              </Badge>
+                            )}
+                            <Badge variant="secondary" className="text-[11px] px-1.5 py-0">
+                              {news.category}
+                            </Badge>
+                            {getSentimentBadge(news.sentiment)}
+                          </div>
+
+                          <div className="shrink-0 text-[11px] text-muted-foreground inline-flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {getTimeDiff(nowMs, news.timestamp)}
+                          </div>
+                        </div>
+
+                        <div className="mt-1 text-sm font-medium leading-snug line-clamp-2" title={news.title}>
+                          {truncate(news.title, 90)}
+                        </div>
+
+                        <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                          <Sparkles className="h-3 w-3 text-chart-4 shrink-0" />
+                          <span className="text-[12px] line-clamp-2" title={news.aiSummary}>
+                            {truncate(news.aiSummary, 90)}
+                          </span>
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <span className="text-[11px] text-muted-foreground truncate max-w-[50%]">
+                            {SOURCE_KO_MAP[news.source] ?? news.source}
+                          </span>
+
+                          <div className="flex items-center gap-1.5">
+                            {news.relatedStocks?.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 justify-end">
+                                {news.relatedStocks.slice(0, 2).map((stock) => (
+                                  <Link
+                                    key={stock.ticker}
+                                    href={`/app/stock/${stock.ticker}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Badge variant="outline" className="text-[11px] px-1.5 py-0 hover:bg-primary/10">
+                                      {stock.name}
+                                    </Badge>
+                                  </Link>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground">-</span>
+                            )}
+
+                            <ExternalLink className="h-3.5 w-3.5 text-primary" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+                ))}
+
+                {filteredNews.length === 0 && (
+                  <div className="rounded-xl border bg-background p-10 text-center text-sm text-muted-foreground">
+                    조건에 맞는 뉴스가 없어요.
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop: 테이블 */}
+              <div className="hidden lg:block h-full min-h-0 overflow-auto">
+                <div className="p-4">
+                  <div className="rounded-xl border border-border overflow-hidden">
+                    <Table className="text-xs">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="sticky top-0 z-10 bg-background w-[44px] px-2 py-2" />
+                          <TableHead className="sticky top-0 z-10 bg-background w-[92px] px-2 py-2">
+                            <span className="inline-flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              시간
+                            </span>
+                          </TableHead>
+                          <TableHead className="sticky top-0 z-10 bg-background w-[260px] px-2 py-2">분류</TableHead>
+                          <TableHead className="sticky top-0 z-10 bg-background px-2 py-2">제목 / 요약</TableHead>
+                          <TableHead className="sticky top-0 z-10 bg-background w-[240px] px-2 py-2">관련 종목</TableHead>
+                          <TableHead className="sticky top-0 z-10 bg-background w-[72px] px-2 py-2 text-right">원문</TableHead>
+                        </TableRow>
+                      </TableHeader>
+
+                      <TableBody>
+                        {filteredNews.map((news) => (
+                          <TableRow key={news.id} className={cn("hover:bg-muted/40", news.isBreaking && "bg-chart-4/5")}>
+                            <TableCell className="px-2 py-2 align-top">{getSentimentIcon(news.sentiment)}</TableCell>
+
+                            <TableCell className="px-2 py-2 align-top text-muted-foreground whitespace-nowrap">
+                              {getTimeDiff(nowMs, news.timestamp)}
+                            </TableCell>
+
+                            <TableCell className="px-2 py-2 align-top">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {news.isBreaking && (
+                                  <Badge className="bg-chart-4 text-white text-[11px] px-1.5 py-0 animate-pulse">
+                                    속보
+                                  </Badge>
+                                )}
+                                <Badge variant="secondary" className="text-[11px] px-1.5 py-0">
+                                  {news.category}
+                                </Badge>
+                                {getSentimentBadge(news.sentiment)}
+                                <span className="text-[11px] text-muted-foreground ml-1 truncate max-w-[140px]">
+                                  {SOURCE_KO_MAP[news.source] ?? news.source}
+                                </span>
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="px-2 py-2 align-top">
+                              <div className="min-w-0">
+                                <div className="text-sm font-medium leading-snug line-clamp-1" title={news.title}>
+                                  {truncate(news.title, 50)}
+                                </div>
+                                <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                                  <Sparkles className="h-3 w-3 text-chart-4 shrink-0" />
+                                  <span className="line-clamp-1" title={news.aiSummary}>
+                                    {truncate(news.aiSummary, 60)}
+                                  </span>
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="px-2 py-2 align-top">
+                              <div className="flex flex-wrap gap-1">
+                                {news.relatedStocks.length > 0 ? (
+                                  news.relatedStocks.slice(0, 4).map((stock) => (
+                                    <Link key={stock.ticker} href={`/app/stock/${stock.ticker}`}>
+                                      <Badge
+                                        variant="outline"
+                                        className="text-[11px] px-1.5 py-0 hover:bg-primary/10 cursor-pointer"
+                                      >
+                                        {stock.name}
+                                      </Badge>
+                                    </Link>
+                                  ))
+                                ) : (
+                                  <span className="text-[11px] text-muted-foreground">-</span>
+                                )}
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="px-2 py-2 align-top text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary"
+                                asChild
+                              >
+                                <a href={news.url} target="_blank" rel="noopener noreferrer">
+                                  <span className="hidden sm:inline">원문</span>
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+
+                        {filteredNews.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                              조건에 맞는 뉴스가 없어요.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ======= Top Stocks Panel (overlay) ======= */}
+          {topOpen && (
+            <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" onClick={() => setTopOpen(false)}>
+              <div className="absolute inset-0 bg-black/40" />
+              <div
+                className={cn(
+                  "absolute right-0 top-0 h-full w-full sm:w-[520px]",
+                  "bg-background border-l border-border shadow-2xl",
+                  "flex flex-col",
+                )}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-4 border-b border-border">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-semibold">TOP 종목 전체</div>
+                        <Badge variant="outline" className="text-[11px] text-muted-foreground">
+                          {topStocksForPanel.length.toLocaleString("ko-KR")}개
+                        </Badge>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">클릭하면 해당 종목으로 뉴스가 필터링돼요</div>
                     </div>
 
-                    <Button
+                    <button
                       type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="h-7 px-2 text-[11px]"
-                      onClick={() => setShowTopNumbers((v) => !v)}
+                      className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-muted/40"
+                      onClick={() => setTopOpen(false)}
+                      aria-label="close"
                     >
-                      {showTopNumbers ? "숫자 숨김" : "숫자 보기"}
-                    </Button>
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
 
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="h-7 px-2 text-[11px]"
-                      onClick={() => setTopOpen(true)}
-                    >
-                      전체 보기
-                    </Button>
-
-                    <div className="hidden sm:block text-[11px] text-muted-foreground">
-                      {RANGE_LABEL[timeRange]}
-                      <span className="mx-1 text-muted-foreground/40">•</span>
-                      {categoryFilter === "all" ? "전체" : categoryFilter}
+                  <div className="mt-3 flex items-center gap-2">
+                    <div className="relative flex-1 min-w-0">
+                      <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <input
+                        value={topQuery}
+                        onChange={(e) => {
+                          setTopQuery(e.target.value)
+                          setTopLimit(80)
+                        }}
+                        placeholder="종목명/티커 검색"
+                        className={cn(
+                          "w-full h-9 rounded-lg border border-input bg-background pl-9 pr-9 text-sm",
+                          "placeholder:text-muted-foreground",
+                          "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                        )}
+                      />
+                      {topQuery.trim().length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTopQuery("")
+                            setTopLimit(80)
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          aria-label="clear top search"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-muted-foreground mr-1">정렬</span>
+                    <Pill active={topSort === "total"} onClick={() => setTopSort("total")}>
+                      전체
+                    </Pill>
+                    <Pill active={topSort === "positive"} onClick={() => setTopSort("positive")}>
+                      호재수
+                    </Pill>
+                    <Pill active={topSort === "negative"} onClick={() => setTopSort("negative")}>
+                      악재수
+                    </Pill>
+                    <Pill active={topSort === "posRatio"} onClick={() => setTopSort("posRatio")}>
+                      호재비중
+                    </Pill>
+                    <Pill active={topSort === "negRatio"} onClick={() => setTopSort("negRatio")}>
+                      악재비중
+                    </Pill>
+                  </div>
+
+                  <div className="mt-2 text-[11px] text-muted-foreground">
+                    기준: {RANGE_LABEL[timeRange]}
+                    <span className="mx-1 text-muted-foreground/40">•</span>
+                    {categoryFilter === "all" ? "전체" : categoryFilter}
                   </div>
                 </div>
 
-                <div className="mt-2 grid grid-cols-1 sm:grid-cols-5 gap-2">
-                  {topStocksPreview.length > 0 ? (
-                    topStocksPreview.map((s) => {
+                <div className="flex-1 overflow-y-auto">
+                  <div className="p-4 space-y-2">
+                    {topStocksVisible.map((s) => {
                       const label = s.name || s.ticker
                       const isActive = stockFocus === s.ticker || stockFocus === s.name
 
@@ -637,26 +1033,34 @@ export function RealtimeNews() {
                         <button
                           key={s.ticker || s.name}
                           type="button"
-                          onClick={() => setStockFocus(s.ticker || s.name)}
+                          onClick={() => {
+                            setStockFocus(s.ticker || s.name)
+                            setTopOpen(false)
+                          }}
                           className={cn(
-                            "rounded-xl border p-2 text-left transition",
+                            "w-full rounded-xl border p-3 text-left transition",
                             "bg-background hover:bg-muted/30",
                             isActive && "border-foreground/30 ring-1 ring-foreground/20",
                           )}
-                          title="클릭하면 해당 종목으로 필터링"
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-medium truncate">{label}</span>
+                                <span className="text-sm font-medium truncate">{label}</span>
                                 <Badge variant="outline" className="text-[11px] tabular-nums">
                                   {s.total}건
                                 </Badge>
+                                {s.ticker && (
+                                  <span className="text-[11px] text-muted-foreground tabular-nums">{s.ticker}</span>
+                                )}
+                              </div>
+                              <div className="mt-1 text-[11px] text-muted-foreground">
+                                호재 {s.positive} · 악재 {s.negative} · 중립 {s.neutral}
                               </div>
                             </div>
                           </div>
 
-                          <div className="mt-1">
+                          <div className="mt-2">
                             <SentimentStackBar
                               positive={s.positive}
                               negative={s.negative}
@@ -666,430 +1070,73 @@ export function RealtimeNews() {
                               onClickPositive={() => {
                                 setStockFocus(s.ticker || s.name)
                                 setSentimentFilter("positive")
+                                setTopOpen(false)
                               }}
                               onClickNegative={() => {
                                 setStockFocus(s.ticker || s.name)
                                 setSentimentFilter("negative")
+                                setTopOpen(false)
                               }}
                               onClickNeutral={() => {
                                 setStockFocus(s.ticker || s.name)
                                 setSentimentFilter("neutral")
+                                setTopOpen(false)
                               }}
                             />
                           </div>
                         </button>
                       )
-                    })
-                  ) : (
-                    <div className="text-[11px] text-muted-foreground">아직 집계할 데이터가 없어요.</div>
-                  )}
+                    })}
 
-                  {allTopStocks.length > 10 && (
-                    <button
-                      type="button"
-                      onClick={() => setTopOpen(true)}
-                      className={cn(
-                        "rounded-xl border p-2 text-left transition",
-                        "bg-background hover:bg-muted/30",
-                        "flex items-center justify-between",
-                      )}
-                      title="전체 종목 보기"
-                    >
-                      <div className="min-w-0">
-                        <div className="text-xs font-medium">전체 종목</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5">
-                          {allTopStocks.length.toLocaleString("ko-KR")}개 종목 · 검색/정렬/더보기
-                        </div>
+                    {topStocksForPanel.length === 0 && (
+                      <div className="rounded-xl border bg-background p-10 text-center text-sm text-muted-foreground">
+                        조건에 맞는 종목이 없어요.
                       </div>
-                      <Badge variant="secondary" className="text-[11px]">
-                        열기
-                      </Badge>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+                    )}
 
-        {/* Top Stocks Panel */}
-        {topOpen && (
-          <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" onClick={() => setTopOpen(false)}>
-            <div className="absolute inset-0 bg-black/40" />
-            <div
-              className={cn(
-                "absolute right-0 top-0 h-full w-full sm:w-[520px]",
-                "bg-background border-l border-border shadow-2xl",
-                "flex flex-col",
-              )}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-4 border-b border-border">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <div className="text-sm font-semibold">TOP 종목 전체</div>
-                      <Badge variant="outline" className="text-[11px] text-muted-foreground">
-                        {topStocksForPanel.length.toLocaleString("ko-KR")}개
-                      </Badge>
-                    </div>
-                    <div className="text-[11px] text-muted-foreground mt-0.5">클릭하면 해당 종목으로 뉴스가 필터링돼요</div>
-                  </div>
+                    {topStocksForPanel.length > topLimit && (
+                      <div className="pt-2 flex items-center justify-center">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="h-9"
+                          onClick={() => setTopLimit((v) => v + 120)}
+                        >
+                          더 보기 ({Math.min(topLimit, topStocksForPanel.length).toLocaleString("ko-KR")} /{" "}
+                          {topStocksForPanel.length.toLocaleString("ko-KR")})
+                        </Button>
+                      </div>
+                    )}
 
-                  <button
-                    type="button"
-                    className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-muted/40"
-                    onClick={() => setTopOpen(false)}
-                    aria-label="close"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div className="mt-3 flex items-center gap-2">
-                  <div className="relative flex-1 min-w-0">
-                    <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <input
-                      value={topQuery}
-                      onChange={(e) => {
-                        setTopQuery(e.target.value)
-                        setTopLimit(80)
-                      }}
-                      placeholder="종목명/티커 검색"
-                      className={cn(
-                        "w-full h-9 rounded-lg border border-input bg-background pl-9 pr-9 text-sm",
-                        "placeholder:text-muted-foreground",
-                        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                      )}
-                    />
-                    {topQuery.trim().length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTopQuery("")
-                          setTopLimit(80)
-                        }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        aria-label="clear top search"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                    {topStocksForPanel.length > 400 && (
+                      <div className="pt-2 text-center text-[11px] text-muted-foreground">
+                        팁: 검색을 쓰면 더 빠르게 찾을 수 있어요.
+                      </div>
                     )}
                   </div>
                 </div>
 
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] text-muted-foreground mr-1">정렬</span>
-                  <Pill active={topSort === "total"} onClick={() => setTopSort("total")}>
-                    전체
-                  </Pill>
-                  <Pill active={topSort === "positive"} onClick={() => setTopSort("positive")}>
-                    호재수
-                  </Pill>
-                  <Pill active={topSort === "negative"} onClick={() => setTopSort("negative")}>
-                    악재수
-                  </Pill>
-                  <Pill active={topSort === "posRatio"} onClick={() => setTopSort("posRatio")}>
-                    호재비중
-                  </Pill>
-                  <Pill active={topSort === "negRatio"} onClick={() => setTopSort("negRatio")}>
-                    악재비중
-                  </Pill>
-                </div>
-
-                <div className="mt-2 text-[11px] text-muted-foreground">
-                  기준: {RANGE_LABEL[timeRange]}
-                  <span className="mx-1 text-muted-foreground/40">•</span>
-                  {categoryFilter === "all" ? "전체" : categoryFilter}
+                <div className="p-4 border-t border-border flex items-center justify-between gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-9"
+                    onClick={() => {
+                      setStockFocus(null)
+                      setSentimentFilter("all")
+                    }}
+                  >
+                    종목/감성 해제
+                  </Button>
+                  <Button type="button" className="h-9" onClick={() => setTopOpen(false)}>
+                    닫기
+                  </Button>
                 </div>
               </div>
-
-              <div className="flex-1 overflow-y-auto">
-                <div className="p-4 space-y-2">
-                  {topStocksVisible.map((s) => {
-                    const label = s.name || s.ticker
-                    const isActive = stockFocus === s.ticker || stockFocus === s.name
-
-                    return (
-                      <button
-                        key={s.ticker || s.name}
-                        type="button"
-                        onClick={() => {
-                          setStockFocus(s.ticker || s.name)
-                          setTopOpen(false)
-                        }}
-                        className={cn(
-                          "w-full rounded-xl border p-3 text-left transition",
-                          "bg-background hover:bg-muted/30",
-                          isActive && "border-foreground/30 ring-1 ring-foreground/20",
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium truncate">{label}</span>
-                              <Badge variant="outline" className="text-[11px] tabular-nums">
-                                {s.total}건
-                              </Badge>
-                              {s.ticker && <span className="text-[11px] text-muted-foreground tabular-nums">{s.ticker}</span>}
-                            </div>
-                            <div className="mt-1 text-[11px] text-muted-foreground">
-                              호재 {s.positive} · 악재 {s.negative} · 중립 {s.neutral}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-2">
-                          <SentimentStackBar
-                            positive={s.positive}
-                            negative={s.negative}
-                            neutral={s.neutral}
-                            total={s.total}
-                            showNumbers={showTopNumbers}
-                            onClickPositive={() => {
-                              setStockFocus(s.ticker || s.name)
-                              setSentimentFilter("positive")
-                              setTopOpen(false)
-                            }}
-                            onClickNegative={() => {
-                              setStockFocus(s.ticker || s.name)
-                              setSentimentFilter("negative")
-                              setTopOpen(false)
-                            }}
-                            onClickNeutral={() => {
-                              setStockFocus(s.ticker || s.name)
-                              setSentimentFilter("neutral")
-                              setTopOpen(false)
-                            }}
-                          />
-                        </div>
-                      </button>
-                    )
-                  })}
-
-                  {topStocksForPanel.length === 0 && (
-                    <div className="rounded-xl border bg-background p-10 text-center text-sm text-muted-foreground">
-                      조건에 맞는 종목이 없어요.
-                    </div>
-                  )}
-
-                  {topStocksForPanel.length > topLimit && (
-                    <div className="pt-2 flex items-center justify-center">
-                      <Button type="button" variant="secondary" className="h-9" onClick={() => setTopLimit((v) => v + 120)}>
-                        더 보기 ({Math.min(topLimit, topStocksForPanel.length).toLocaleString("ko-KR")} /{" "}
-                        {topStocksForPanel.length.toLocaleString("ko-KR")})
-                      </Button>
-                    </div>
-                  )}
-
-                  {topStocksForPanel.length > 400 && (
-                    <div className="pt-2 text-center text-[11px] text-muted-foreground">팁: 검색을 쓰면 더 빠르게 찾을 수 있어요.</div>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-4 border-t border-border flex items-center justify-between gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="h-9"
-                  onClick={() => {
-                    setStockFocus(null)
-                    setSentimentFilter("all")
-                  }}
-                >
-                  종목/감성 해제
-                </Button>
-                <Button type="button" className="h-9" onClick={() => setTopOpen(false)}>
-                  닫기
-                </Button>
-              </div>
             </div>
-          </div>
-        )}
-
-        {/* Body */}
-        <div className="p-4">
-          {/* Mobile */}
-          <div className="md:hidden">
-            <div className={cn("space-y-2", "max-h-[60vh] overflow-y-auto overscroll-contain", "pr-1")} style={{ WebkitOverflowScrolling: "touch" }}>
-              {filteredNews.map((news) => (
-                <a
-                  key={news.id}
-                  href={news.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(
-                    "block rounded-xl border bg-background p-3 transition",
-                    "hover:bg-muted/40 active:bg-muted/50",
-                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                    news.isBreaking && "border-chart-4/40 bg-chart-4/5",
-                  )}
-                >
-                  <div className="flex items-start gap-2">
-                    <div className="pt-0.5 shrink-0">{getSentimentIcon(news.sentiment)}</div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {news.isBreaking && (
-                            <Badge className="bg-chart-4 text-white text-[11px] px-1.5 py-0 animate-pulse">속보</Badge>
-                          )}
-                          <Badge variant="secondary" className="text-[11px] px-1.5 py-0">
-                            {news.category}
-                          </Badge>
-                          {getSentimentBadge(news.sentiment)}
-                        </div>
-
-                        <div className="shrink-0 text-[11px] text-muted-foreground inline-flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {getTimeDiff(nowMs, news.timestamp)}
-                        </div>
-                      </div>
-
-                      <div className="mt-1 text-sm font-medium leading-snug line-clamp-2" title={news.title}>
-                        {truncate(news.title, 90)}
-                      </div>
-
-                      <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                        <Sparkles className="h-3 w-3 text-chart-4 shrink-0" />
-                        <span className="text-[12px] line-clamp-2" title={news.aiSummary}>
-                          {truncate(news.aiSummary, 90)}
-                        </span>
-                      </div>
-
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <span className="text-[11px] text-muted-foreground truncate max-w-[50%]">
-                          {SOURCE_KO_MAP[news.source] ?? news.source}
-                        </span>
-
-                        <div className="flex items-center gap-1.5">
-                          {news.relatedStocks?.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 justify-end">
-                              {news.relatedStocks.slice(0, 2).map((stock) => (
-                                <Link key={stock.ticker} href={`/stock/${stock.ticker}`} onClick={(e) => e.stopPropagation()}>
-                                  <Badge variant="outline" className="text-[11px] px-1.5 py-0 hover:bg-primary/10">
-                                    {stock.name}
-                                  </Badge>
-                                </Link>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-[11px] text-muted-foreground">-</span>
-                          )}
-
-                          <ExternalLink className="h-3.5 w-3.5 text-primary" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </a>
-              ))}
-
-              {filteredNews.length === 0 && (
-                <div className="rounded-xl border bg-background p-10 text-center text-sm text-muted-foreground">조건에 맞는 뉴스가 없어요.</div>
-              )}
-            </div>
-          </div>
-
-          {/* Desktop */}
-          <div className="hidden md:block">
-            <div className="max-h-[560px] overflow-auto rounded-xl border border-border">
-              <Table className="text-xs">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="sticky top-0 z-10 bg-background w-[44px] px-2 py-2" />
-                    <TableHead className="sticky top-0 z-10 bg-background w-[92px] px-2 py-2">
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        시간
-                      </span>
-                    </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background w-[260px] px-2 py-2">분류</TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background px-2 py-2">제목 / 요약</TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background w-[240px] px-2 py-2">관련 종목</TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background w-[72px] px-2 py-2 text-right">원문</TableHead>
-                  </TableRow>
-                </TableHeader>
-
-                <TableBody>
-                  {filteredNews.map((news) => (
-                    <TableRow key={news.id} className={cn("hover:bg-muted/40", news.isBreaking && "bg-chart-4/5")}>
-                      <TableCell className="px-2 py-2 align-top">{getSentimentIcon(news.sentiment)}</TableCell>
-
-                      <TableCell className="px-2 py-2 align-top text-muted-foreground whitespace-nowrap">
-                        {getTimeDiff(nowMs, news.timestamp)}
-                      </TableCell>
-
-                      <TableCell className="px-2 py-2 align-top">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {news.isBreaking && (
-                            <Badge className="bg-chart-4 text-white text-[11px] px-1.5 py-0 animate-pulse">속보</Badge>
-                          )}
-                          <Badge variant="secondary" className="text-[11px] px-1.5 py-0">
-                            {news.category}
-                          </Badge>
-                          {getSentimentBadge(news.sentiment)}
-                          <span className="text-[11px] text-muted-foreground ml-1 truncate max-w-[140px]">
-                            {SOURCE_KO_MAP[news.source] ?? news.source}
-                          </span>
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="px-2 py-2 align-top">
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium leading-snug line-clamp-1" title={news.title}>
-                            {truncate(news.title, 50)}
-                          </div>
-                          <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                            <Sparkles className="h-3 w-3 text-chart-4 shrink-0" />
-                            <span className="line-clamp-1" title={news.aiSummary}>
-                              {truncate(news.aiSummary, 60)}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="px-2 py-2 align-top">
-                        <div className="flex flex-wrap gap-1">
-                          {news.relatedStocks.length > 0 ? (
-                            news.relatedStocks.slice(0, 4).map((stock) => (
-                              <Link key={stock.ticker} href={`/stock/${stock.ticker}`}>
-                                <Badge variant="outline" className="text-[11px] px-1.5 py-0 hover:bg-primary/10 cursor-pointer">
-                                  {stock.name}
-                                </Badge>
-                              </Link>
-                            ))
-                          ) : (
-                            <span className="text-[11px] text-muted-foreground">-</span>
-                          )}
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="px-2 py-2 align-top text-right">
-                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary" asChild>
-                          <a href={news.url} target="_blank" rel="noopener noreferrer">
-                            <span className="hidden sm:inline">원문</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-
-                  {filteredNews.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                        조건에 맞는 뉴스가 없어요.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+    </section>
   )
 }

@@ -1095,7 +1095,7 @@ export default function StockDetailPage() {
             <p className="text-sm text-muted-foreground break-words">{String((error as any)?.message ?? "")}</p>
             <div className="flex gap-2">
               <Button onClick={() => refetch()}>다시 시도</Button>
-              <Link href="/">
+              <Link href="/public">
                 <Button variant="outline">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   홈으로
