@@ -159,7 +159,7 @@ function Pill({ active, onClick, children }: { active: boolean; onClick: () => v
       type="button"
       onClick={onClick}
       className={cn(
-        "h-7 px-2.5 rounded-full text-xs transition border",
+        "h-8 px-3 rounded-full text-xs transition border whitespace-nowrap",
         active ? "bg-accent text-background border-accent" : "bg-background hover:bg-muted/40 text-foreground border-border",
       )}
     >
@@ -216,7 +216,7 @@ function SentimentStackBar({
 
   return (
     <div className="w-full">
-      <div className="h-2 w-full rounded-full bg-secondary overflow-hidden flex">
+      <div className="h-2.5 w-full rounded-full bg-secondary overflow-hidden flex">
         <button
           type="button"
           onClick={(e) => {
@@ -317,6 +317,9 @@ function sortTopStocks(arr: StockAgg[], sort: TopSort) {
   return copy
 }
 
+// =========================
+// Component
+// =========================
 export function RealtimeNews() {
   const { data = [] } = useRealtimeNews()
 
@@ -442,7 +445,9 @@ export function RealtimeNews() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total)
   }, [newsForTopStocks])
 
-  // 왼쪽 패널에서 더 많이 보여주기 (원하면 숫자만 조절)
+  // 모바일용: TOP 스트립은 더 짧게
+  const topStocksStripMobile = useMemo(() => allTopStocks.slice(0, 10), [allTopStocks])
+
   const topStocksPreview = useMemo(() => allTopStocks.slice(0, 18), [allTopStocks])
 
   const topStocksForPanel = useMemo(() => {
@@ -477,21 +482,24 @@ export function RealtimeNews() {
   }
 
   return (
-    <section className="w-full p-4" style={{ height: "calc(100dvh - var(--app-header-h, 64px))" }}>
+    <section
+      className="w-full px-3 sm:px-4 py-3 sm:py-4"
+      style={{ height: "calc(100svh - var(--app-header-h, 64px))" }}
+    >
       <Card className="h-full border-border bg-card overflow-hidden">
         <CardContent className="h-full p-0 flex flex-col min-h-0">
-          {/* ======= Top line ======= */}
-          <div className="px-4 py-3 border-b border-border bg-background/60">
+          {/* ======= Header ======= */}
+          <div className="px-3 sm:px-4 py-3 border-b border-border bg-background/70 backdrop-blur">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-lg bg-chart-4/15 flex items-center justify-center shrink-0">
+                  <div className="h-9 w-9 rounded-xl bg-chart-4/15 flex items-center justify-center shrink-0">
                     <Zap className="h-4 w-4 text-chart-4" />
                   </div>
 
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-semibold text-foreground">실시간 뉴스</h3>
+                      <h3 className="text-base sm:text-sm font-semibold text-foreground">실시간 뉴스</h3>
                       <Badge variant="secondary" className="bg-red-500/15 text-red-500 text-[11px]">
                         LIVE
                       </Badge>
@@ -520,7 +528,7 @@ export function RealtimeNews() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <Button variant="secondary" size="sm" className="h-8" onClick={clearAll}>
+                <Button variant="secondary" size="sm" className="h-9" onClick={clearAll}>
                   초기화
                 </Button>
               </div>
@@ -529,13 +537,13 @@ export function RealtimeNews() {
             {/* Search */}
             <div className="mt-3 flex items-center gap-2">
               <div className="relative flex-1 min-w-0">
-                <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="검색: 제목/요약/출처/카테고리/종목"
                   className={cn(
-                    "w-full h-9 rounded-lg border border-input bg-background pl-9 pr-9 text-sm",
+                    "w-full h-10 rounded-xl border border-input bg-background pl-10 pr-10 text-sm",
                     "placeholder:text-muted-foreground",
                     "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                   )}
@@ -544,7 +552,7 @@ export function RealtimeNews() {
                   <button
                     type="button"
                     onClick={() => setQ("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     aria-label="clear search"
                   >
                     <X className="h-4 w-4" />
@@ -552,13 +560,74 @@ export function RealtimeNews() {
                 )}
               </div>
 
-              <Button variant="secondary" size="sm" className="h-9 px-3" onClick={() => setTopOpen(true)}>
-                TOP 종목
+              <Button variant="secondary" size="sm" className="h-10 px-3" onClick={() => setTopOpen(true)}>
+                TOP
               </Button>
             </div>
 
-            {/* ======= Filters moved UP (상단) ======= */}
-            <div className="mt-3 rounded-xl border border-border bg-background p-3">
+            {/* ======= Filters: Mobile collapsible ======= */}
+            <div className="mt-3 lg:hidden">
+              <details className="rounded-2xl border border-border bg-background p-3">
+                <summary className="cursor-pointer list-none">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    필터
+                    <span className="ml-auto text-[11px]">
+                      {RANGE_LABEL[timeRange]} · {categoryFilter === "all" ? "전체" : categoryFilter} ·{" "}
+                      {sentimentFilter === "all" ? "전체" : sentimentFilter}
+                    </span>
+                  </div>
+                </summary>
+
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <div className="text-[11px] text-muted-foreground mb-2">기간</div>
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                      {(Object.keys(RANGE_LABEL) as TimeRange[]).map((r) => (
+                        <Pill key={r} active={timeRange === r} onClick={() => setTimeRange(r)}>
+                          {RANGE_LABEL[r]}
+                        </Pill>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[11px] text-muted-foreground mb-2">감성</div>
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                      <Pill active={sentimentFilter === "all"} onClick={() => setSentimentFilter("all")}>
+                        전체
+                      </Pill>
+                      <Pill active={sentimentFilter === "positive"} onClick={() => setSentimentFilter("positive")}>
+                        호재
+                      </Pill>
+                      <Pill active={sentimentFilter === "negative"} onClick={() => setSentimentFilter("negative")}>
+                        악재
+                      </Pill>
+                      <Pill active={sentimentFilter === "neutral"} onClick={() => setSentimentFilter("neutral")}>
+                        중립
+                      </Pill>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[11px] text-muted-foreground mb-2">카테고리</div>
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                      <Pill active={categoryFilter === "all"} onClick={() => setCategoryFilter("all")}>
+                        전체
+                      </Pill>
+                      {(["경제", "산업", "정책", "글로벌", "기업"] as Category[]).map((c) => (
+                        <Pill key={c} active={categoryFilter === c} onClick={() => setCategoryFilter(c)}>
+                          {c}
+                        </Pill>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </details>
+            </div>
+
+            {/* ======= Filters: Desktop always open ======= */}
+            <div className="mt-3 hidden lg:block rounded-xl border border-border bg-background p-3">
               <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                 <SlidersHorizontal className="h-4 w-4" />
                 필터
@@ -609,12 +678,95 @@ export function RealtimeNews() {
                 </div>
               </div>
             </div>
+
+            {/* ======= Mobile TOP stocks strip (가로 스크롤) ======= */}
+            <div className="mt-3 lg:hidden">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-medium text-foreground">
+                  TOP 종목 <span className="text-[11px] text-muted-foreground">({allTopStocks.length.toLocaleString("ko-KR")})</span>
+                </div>
+                <div className="flex items-center gap-3 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setShowTopNumbers((v) => !v)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    {showTopNumbers ? "숫자 숨김" : "숫자 보기"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTopOpen(true)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    전체 보기
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                {topStocksStripMobile.length > 0 ? (
+                  topStocksStripMobile.map((s) => {
+                    const label = s.name || s.ticker
+                    const isActive = stockFocus === s.ticker || stockFocus === s.name
+
+                    return (
+                      <button
+                        key={s.ticker || s.name}
+                        type="button"
+                        onClick={() => setStockFocus(s.ticker || s.name)}
+                        className={cn(
+                          "min-w-[240px] max-w-[240px] rounded-2xl border p-3 text-left transition",
+                          "bg-background hover:bg-muted/30",
+                          isActive && "border-foreground/30 ring-1 ring-foreground/20",
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold truncate">{label}</span>
+                              <Badge variant="outline" className="text-[11px] tabular-nums">
+                                {s.total}건
+                              </Badge>
+                            </div>
+                            {s.ticker && <div className="mt-0.5 text-[11px] text-muted-foreground">{s.ticker}</div>}
+                          </div>
+                        </div>
+
+                        <div className="mt-2">
+                          <SentimentStackBar
+                            positive={s.positive}
+                            negative={s.negative}
+                            neutral={s.neutral}
+                            total={s.total}
+                            showNumbers={showTopNumbers}
+                            onClickPositive={() => {
+                              setStockFocus(s.ticker || s.name)
+                              setSentimentFilter("positive")
+                            }}
+                            onClickNegative={() => {
+                              setStockFocus(s.ticker || s.name)
+                              setSentimentFilter("negative")
+                            }}
+                            onClickNeutral={() => {
+                              setStockFocus(s.ticker || s.name)
+                              setSentimentFilter("neutral")
+                            }}
+                          />
+                        </div>
+                      </button>
+                    )
+                  })
+                ) : (
+                  <div className="text-[11px] text-muted-foreground">아직 집계할 데이터가 없어요.</div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* ======= Main layout: LEFT = TOP 종목 only, RIGHT = 뉴스 ======= */}
+          {/* ======= Main layout: Desktop only left panel + right ======= */}
           <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[360px_1fr]">
-            {/* Left: Top stocks only */}
-            <aside className="min-h-0 border-b border-border lg:border-b-0 lg:border-r bg-background/40">
+            {/* Left: Desktop only */}
+            <aside className="hidden lg:block min-h-0 border-r border-border bg-background/40">
               <div className="h-full min-h-0 overflow-y-auto p-4 space-y-3">
                 <SectionCard
                   title="TOP 종목"
@@ -730,10 +882,10 @@ export function RealtimeNews() {
               </div>
             </aside>
 
-            {/* Right: News list/table */}
+            {/* Right: News */}
             <div className="min-h-0">
-              {/* Mobile / Tablet: 카드 리스트 */}
-              <div className="lg:hidden h-full min-h-0 overflow-y-auto overscroll-contain p-4 space-y-2">
+              {/* Mobile: 카드 리스트 (한 화면에 시원하게) */}
+              <div className="lg:hidden h-full min-h-0 overflow-y-auto overscroll-contain p-3 pb-[env(safe-area-inset-bottom)] space-y-3">
                 {filteredNews.map((news) => (
                   <a
                     key={news.id}
@@ -741,61 +893,61 @@ export function RealtimeNews() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className={cn(
-                      "block rounded-xl border bg-background p-3 transition",
+                      "block rounded-2xl border bg-background p-4 transition",
                       "hover:bg-muted/40 active:bg-muted/50",
                       "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                       news.isBreaking && "border-chart-4/40 bg-chart-4/5",
                     )}
                   >
-                    <div className="flex items-start gap-2">
-                      <div className="pt-0.5 shrink-0">{getSentimentIcon(news.sentiment)}</div>
+                    <div className="flex items-start gap-3">
+                      <div className="pt-1 shrink-0">{getSentimentIcon(news.sentiment)}</div>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {news.isBreaking && (
-                              <Badge className="bg-chart-4 text-white text-[11px] px-1.5 py-0 animate-pulse">
+                              <Badge className="bg-chart-4 text-white text-[11px] px-2 py-0.5 animate-pulse">
                                 속보
                               </Badge>
                             )}
-                            <Badge variant="secondary" className="text-[11px] px-1.5 py-0">
+                            <Badge variant="secondary" className="text-[11px] px-2 py-0.5">
                               {news.category}
                             </Badge>
                             {getSentimentBadge(news.sentiment)}
                           </div>
 
                           <div className="shrink-0 text-[11px] text-muted-foreground inline-flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
+                            <Clock className="h-3.5 w-3.5" />
                             {getTimeDiff(nowMs, news.timestamp)}
                           </div>
                         </div>
 
-                        <div className="mt-1 text-sm font-medium leading-snug line-clamp-2" title={news.title}>
-                          {truncate(news.title, 90)}
+                        <div className="mt-2 text-base font-semibold leading-snug line-clamp-2" title={news.title}>
+                          {truncate(news.title, 120)}
                         </div>
 
-                        <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                          <Sparkles className="h-3 w-3 text-chart-4 shrink-0" />
-                          <span className="text-[12px] line-clamp-2" title={news.aiSummary}>
-                            {truncate(news.aiSummary, 90)}
+                        <div className="mt-2 flex items-start gap-2 text-muted-foreground">
+                          <Sparkles className="h-4 w-4 text-chart-4 shrink-0 mt-0.5" />
+                          <span className="text-sm leading-relaxed line-clamp-3" title={news.aiSummary}>
+                            {truncate(news.aiSummary, 140)}
                           </span>
                         </div>
 
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <span className="text-[11px] text-muted-foreground truncate max-w-[50%]">
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          <span className="text-[12px] text-muted-foreground truncate max-w-[45%]">
                             {SOURCE_KO_MAP[news.source] ?? news.source}
                           </span>
 
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-2">
                             {news.relatedStocks?.length > 0 ? (
-                              <div className="flex flex-wrap gap-1 justify-end">
-                                {news.relatedStocks.slice(0, 2).map((stock) => (
+                              <div className="flex gap-1.5 overflow-x-auto max-w-[55vw]">
+                                {news.relatedStocks.slice(0, 8).map((stock) => (
                                   <Link
                                     key={stock.ticker}
                                     href={`/app/stock/${stock.ticker}`}
                                     onClick={(e) => e.stopPropagation()}
                                   >
-                                    <Badge variant="outline" className="text-[11px] px-1.5 py-0 hover:bg-primary/10">
+                                    <Badge variant="outline" className="text-[11px] px-2 py-0.5 hover:bg-primary/10">
                                       {stock.name}
                                     </Badge>
                                   </Link>
@@ -805,7 +957,7 @@ export function RealtimeNews() {
                               <span className="text-[11px] text-muted-foreground">-</span>
                             )}
 
-                            <ExternalLink className="h-3.5 w-3.5 text-primary" />
+                            <ExternalLink className="h-4 w-4 text-primary shrink-0" />
                           </div>
                         </div>
                       </div>
@@ -814,7 +966,7 @@ export function RealtimeNews() {
                 ))}
 
                 {filteredNews.length === 0 && (
-                  <div className="rounded-xl border bg-background p-10 text-center text-sm text-muted-foreground">
+                  <div className="rounded-2xl border bg-background p-10 text-center text-sm text-muted-foreground">
                     조건에 맞는 뉴스가 없어요.
                   </div>
                 )}
@@ -870,12 +1022,12 @@ export function RealtimeNews() {
                             <TableCell className="px-2 py-2 align-top">
                               <div className="min-w-0">
                                 <div className="text-sm font-medium leading-snug line-clamp-1" title={news.title}>
-                                  {truncate(news.title, 50)}
+                                  {truncate(news.title, 70)}
                                 </div>
                                 <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
                                   <Sparkles className="h-3 w-3 text-chart-4 shrink-0" />
                                   <span className="line-clamp-1" title={news.aiSummary}>
-                                    {truncate(news.aiSummary, 60)}
+                                    {truncate(news.aiSummary, 90)}
                                   </span>
                                 </div>
                               </div>
@@ -884,7 +1036,7 @@ export function RealtimeNews() {
                             <TableCell className="px-2 py-2 align-top">
                               <div className="flex flex-wrap gap-1">
                                 {news.relatedStocks.length > 0 ? (
-                                  news.relatedStocks.slice(0, 4).map((stock) => (
+                                  news.relatedStocks.slice(0, 6).map((stock) => (
                                     <Link key={stock.ticker} href={`/app/stock/${stock.ticker}`}>
                                       <Badge
                                         variant="outline"
@@ -931,15 +1083,19 @@ export function RealtimeNews() {
             </div>
           </div>
 
-          {/* ======= Top Stocks Panel (overlay) ======= */}
+          {/* ======= Top Stocks Panel (mobile bottom-sheet / desktop right drawer) ======= */}
           {topOpen && (
             <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" onClick={() => setTopOpen(false)}>
               <div className="absolute inset-0 bg-black/40" />
+
               <div
                 className={cn(
-                  "absolute right-0 top-0 h-full w-full sm:w-[520px]",
-                  "bg-background border-l border-border shadow-2xl",
+                  // Mobile: bottom sheet
+                  "absolute inset-x-0 bottom-0 h-[85svh] rounded-t-2xl",
+                  "bg-background border-t border-border shadow-2xl",
                   "flex flex-col",
+                  // Desktop: right drawer
+                  "sm:inset-y-0 sm:right-0 sm:left-auto sm:bottom-auto sm:h-full sm:w-[520px] sm:rounded-none sm:border-t-0 sm:border-l",
                 )}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -957,7 +1113,7 @@ export function RealtimeNews() {
 
                     <button
                       type="button"
-                      className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-muted/40"
+                      className="h-9 w-9 inline-flex items-center justify-center rounded-xl hover:bg-muted/40"
                       onClick={() => setTopOpen(false)}
                       aria-label="close"
                     >
@@ -967,7 +1123,7 @@ export function RealtimeNews() {
 
                   <div className="mt-3 flex items-center gap-2">
                     <div className="relative flex-1 min-w-0">
-                      <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <input
                         value={topQuery}
                         onChange={(e) => {
@@ -976,7 +1132,7 @@ export function RealtimeNews() {
                         }}
                         placeholder="종목명/티커 검색"
                         className={cn(
-                          "w-full h-9 rounded-lg border border-input bg-background pl-9 pr-9 text-sm",
+                          "w-full h-10 rounded-xl border border-input bg-background pl-10 pr-10 text-sm",
                           "placeholder:text-muted-foreground",
                           "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                         )}
@@ -988,7 +1144,7 @@ export function RealtimeNews() {
                             setTopQuery("")
                             setTopLimit(80)
                           }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                           aria-label="clear top search"
                         >
                           <X className="h-4 w-4" />
@@ -997,7 +1153,7 @@ export function RealtimeNews() {
                     </div>
                   </div>
 
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
                     <span className="text-[11px] text-muted-foreground mr-1">정렬</span>
                     <Pill active={topSort === "total"} onClick={() => setTopSort("total")}>
                       전체
@@ -1038,7 +1194,7 @@ export function RealtimeNews() {
                             setTopOpen(false)
                           }}
                           className={cn(
-                            "w-full rounded-xl border p-3 text-left transition",
+                            "w-full rounded-2xl border p-4 text-left transition",
                             "bg-background hover:bg-muted/30",
                             isActive && "border-foreground/30 ring-1 ring-foreground/20",
                           )}
@@ -1046,7 +1202,7 @@ export function RealtimeNews() {
                           <div className="flex items-center justify-between gap-2">
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium truncate">{label}</span>
+                                <span className="text-base font-semibold truncate">{label}</span>
                                 <Badge variant="outline" className="text-[11px] tabular-nums">
                                   {s.total}건
                                 </Badge>
@@ -1060,7 +1216,7 @@ export function RealtimeNews() {
                             </div>
                           </div>
 
-                          <div className="mt-2">
+                          <div className="mt-3">
                             <SentimentStackBar
                               positive={s.positive}
                               negative={s.negative}
@@ -1089,7 +1245,7 @@ export function RealtimeNews() {
                     })}
 
                     {topStocksForPanel.length === 0 && (
-                      <div className="rounded-xl border bg-background p-10 text-center text-sm text-muted-foreground">
+                      <div className="rounded-2xl border bg-background p-10 text-center text-sm text-muted-foreground">
                         조건에 맞는 종목이 없어요.
                       </div>
                     )}
@@ -1099,7 +1255,7 @@ export function RealtimeNews() {
                         <Button
                           type="button"
                           variant="secondary"
-                          className="h-9"
+                          className="h-10"
                           onClick={() => setTopLimit((v) => v + 120)}
                         >
                           더 보기 ({Math.min(topLimit, topStocksForPanel.length).toLocaleString("ko-KR")} /{" "}
@@ -1116,11 +1272,11 @@ export function RealtimeNews() {
                   </div>
                 </div>
 
-                <div className="p-4 border-t border-border flex items-center justify-between gap-2">
+                <div className="p-4 border-t border-border flex items-center justify-between gap-2 pb-[env(safe-area-inset-bottom)]">
                   <Button
                     type="button"
                     variant="secondary"
-                    className="h-9"
+                    className="h-10"
                     onClick={() => {
                       setStockFocus(null)
                       setSentimentFilter("all")
@@ -1128,7 +1284,7 @@ export function RealtimeNews() {
                   >
                     종목/감성 해제
                   </Button>
-                  <Button type="button" className="h-9" onClick={() => setTopOpen(false)}>
+                  <Button type="button" className="h-10" onClick={() => setTopOpen(false)}>
                     닫기
                   </Button>
                 </div>

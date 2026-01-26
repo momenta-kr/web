@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   TrendingUp,
@@ -25,7 +24,9 @@ import {
   MoreHorizontal,
   ExternalLink,
   X,
+  SlidersHorizontal,
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { themesData, themeStats, generateThemeStocks, themeCategories } from "@/lib/mock-data"
 
 const momentumConfig = {
@@ -74,7 +75,7 @@ export function ThemeExplorer() {
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null)
   const [themeStocks, setThemeStocks] = useState<ReturnType<typeof generateThemeStocks>>([])
 
-  const hotThemes = useMemo(() => themesData.filter((t) => t.momentum === "hot").slice(0, 6), [])
+  const hotThemes = useMemo(() => themesData.filter((t) => t.momentum === "hot").slice(0, 8), [])
 
   const filteredThemes = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -104,38 +105,56 @@ export function ThemeExplorer() {
   }
 
   return (
-    <section className="w-full" style={{ height: "calc(100dvh - var(--app-header-h, 64px))" }}>
-      <div className="h-full p-4">
+    <section
+      className="w-full"
+      style={{ height: "calc(100svh - var(--app-header-h, 64px))" }}
+    >
+      <div className="h-full px-3 py-3 sm:p-4">
         <div className="h-full grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-3 min-h-0">
-          {/* LEFT: 탐색/필터/리스트 (스크롤) */}
-          <Card className="min-h-0 flex flex-col">
-            <CardHeader className="pb-3">
+          {/* LEFT: 탐색/필터/리스트 */}
+          <Card className="min-h-0 flex flex-col overflow-hidden">
+            {/* 모바일에서 시원하게: 헤더는 고정 영역(스크롤 X), 리스트만 스크롤 */}
+            <div className="shrink-0 border-b border-border bg-background/70 backdrop-blur px-3 py-3 sm:px-4 sm:py-4">
+              {/* 타이틀 */}
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <BarChart3 className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-lg truncate">테마 탐색기</CardTitle>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="text-base sm:text-lg font-semibold truncate">테마 탐색기</div>
+                      <Badge variant="outline" className="text-[11px] text-muted-foreground">
+                        {themeStats.totalThemes}개
+                      </Badge>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {themeStats.totalStocks}종목
+                      <span className="mx-1 text-muted-foreground/40">•</span>
+                      {filteredThemes.length.toLocaleString("ko-KR")}개 표시
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
-                  <Badge variant="outline">{themeStats.totalThemes}개</Badge>
-                  <Badge variant="outline">{themeStats.totalStocks}종목</Badge>
-                </div>
+
+                <Button variant="secondary" size="sm" className="h-9" onClick={clearFilters}>
+                  초기화
+                </Button>
               </div>
 
-              {/* HOT 테마 */}
+              {/* HOT: 모바일은 가로 스크롤 스트립 */}
               <div className="mt-3">
                 <div className="flex items-center gap-2 mb-2">
                   <Flame className="h-4 w-4 text-red-500" />
                   <span className="text-sm font-medium">HOT</span>
-                  <span className="text-xs text-muted-foreground">클릭해서 상세 보기</span>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">클릭해서 상세 보기</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+
+                <div className="flex gap-2 overflow-x-auto pb-1">
                   {hotThemes.map((theme) => (
                     <button
                       key={theme.id}
                       onClick={() => handleThemeClick(theme)}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/20"
+                      className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-3 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/20"
                     >
-                      <Flame className="h-3 w-3" />
+                      <Flame className="h-3.5 w-3.5" />
                       <span className="max-w-[180px] truncate">{theme.name}</span>
                       <span className="text-xs tabular-nums">
                         {theme.avgChangePercent > 0 ? "+" : ""}
@@ -153,7 +172,7 @@ export function ThemeExplorer() {
                   placeholder="테마명 또는 키워드 검색..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-9"
+                  className="h-10 pl-9 pr-10 rounded-xl"
                 />
                 {searchQuery.trim().length > 0 && (
                   <button
@@ -167,8 +186,93 @@ export function ThemeExplorer() {
                 )}
               </div>
 
-              {/* 필터 */}
-              <div className="mt-3 space-y-2">
+              {/* 필터: 모바일은 접기/펼치기, 데스크탑은 항상 노출 */}
+              <div className="mt-3 lg:hidden">
+                <details className="rounded-2xl border border-border bg-background p-3">
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      필터
+                      <span className="ml-auto text-[11px]">
+                        {selectedCategory ?? "전체"} · {selectedMomentum ?? "전체"}
+                      </span>
+                    </div>
+                  </summary>
+
+                  <div className="mt-3 space-y-3">
+                    {/* 카테고리 */}
+                    <div>
+                      <div className="text-[11px] text-muted-foreground mb-2">카테고리</div>
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                        <Button
+                          variant={selectedCategory === null ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedCategory(null)}
+                          className="h-8 text-xs shrink-0 rounded-full"
+                        >
+                          전체
+                        </Button>
+                        {themeCategories.map((cat) => {
+                          const c = cat as CategoryKey
+                          const Icon = categoryConfig[c].icon
+                          const active = selectedCategory === c
+                          return (
+                            <Button
+                              key={c}
+                              variant={active ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setSelectedCategory(active ? null : c)}
+                              className="h-8 text-xs shrink-0 rounded-full"
+                            >
+                              <Icon className="mr-1 h-3 w-3" />
+                              {c}
+                            </Button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 모멘텀 */}
+                    <div>
+                      <div className="text-[11px] text-muted-foreground mb-2">모멘텀</div>
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                        {(Object.keys(momentumConfig) as MomentumKey[]).map((key) => {
+                          const config = momentumConfig[key]
+                          const Icon = config.icon
+                          const active = selectedMomentum === key
+                          return (
+                            <button
+                              key={key}
+                              onClick={() => setSelectedMomentum(active ? null : key)}
+                              className={cn(
+                                "shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-2 text-xs font-medium transition-colors border",
+                                active
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background border-border hover:bg-muted/30",
+                              )}
+                            >
+                              <Icon className="h-3.5 w-3.5" />
+                              {config.label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <div className="text-[11px] text-muted-foreground">
+                        {filteredThemes.length.toLocaleString("ko-KR")}개 표시
+                      </div>
+                      <Button variant="secondary" size="sm" className="h-8" onClick={clearFilters}>
+                        초기화
+                      </Button>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              {/* 데스크탑 필터 */}
+              <div className="mt-3 hidden lg:block space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-xs text-muted-foreground">
                     {filteredThemes.length.toLocaleString("ko-KR")}개 표시
@@ -180,7 +284,6 @@ export function ThemeExplorer() {
                   </Button>
                 </div>
 
-                {/* 카테고리 */}
                 <div className="flex flex-wrap gap-1.5">
                   <Button
                     variant={selectedCategory === null ? "default" : "outline"}
@@ -192,14 +295,14 @@ export function ThemeExplorer() {
                   </Button>
                   {themeCategories.map((cat) => {
                     const c = cat as CategoryKey
-                    const config = categoryConfig[c]
-                    const Icon = config.icon
+                    const Icon = categoryConfig[c].icon
+                    const active = selectedCategory === c
                     return (
                       <Button
                         key={c}
-                        variant={selectedCategory === c ? "default" : "outline"}
+                        variant={active ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setSelectedCategory(selectedCategory === c ? null : c)}
+                        onClick={() => setSelectedCategory(active ? null : c)}
                         className="h-7 text-xs"
                       >
                         <Icon className="mr-1 h-3 w-3" />
@@ -209,7 +312,6 @@ export function ThemeExplorer() {
                   })}
                 </div>
 
-                {/* 모멘텀 */}
                 <div className="flex flex-wrap gap-1.5">
                   {(Object.keys(momentumConfig) as MomentumKey[]).map((key) => {
                     const config = momentumConfig[key]
@@ -219,9 +321,10 @@ export function ThemeExplorer() {
                       <button
                         key={key}
                         onClick={() => setSelectedMomentum(active ? null : key)}
-                        className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-                          active ? "bg-primary text-primary-foreground" : config.color
-                        }`}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                          active ? "bg-primary text-primary-foreground" : config.color,
+                        )}
                       >
                         <Icon className="h-3 w-3" />
                         {config.label}
@@ -230,12 +333,12 @@ export function ThemeExplorer() {
                   })}
                 </div>
               </div>
-            </CardHeader>
+            </div>
 
-            {/* 리스트(나머지 높이 전부) */}
-            <CardContent className="pt-0 flex-1 min-h-0">
-              <ScrollArea className="h-full">
-                <div className="space-y-2 pr-3 pb-2">
+            {/* 리스트: 모바일에서 깨지는 ScrollArea 제거 → native overflow */}
+            <CardContent className="flex-1 min-h-0 p-0">
+              <div className="h-full overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-4 pb-[env(safe-area-inset-bottom)]">
+                <div className="space-y-3">
                   {filteredThemes.map((theme) => {
                     const momentum = momentumConfig[theme.momentum as MomentumKey]
                     const MomentumIcon = momentum.icon
@@ -247,32 +350,39 @@ export function ThemeExplorer() {
                       <button
                         key={theme.id}
                         onClick={() => handleThemeClick(theme)}
-                        className={`w-full rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent ${
-                          isActive ? "ring-1 ring-primary/40 border-primary/30" : ""
-                        }`}
+                        className={cn(
+                          "w-full rounded-2xl lg:rounded-lg border bg-card p-4 text-left transition-colors",
+                          "hover:bg-accent",
+                          isActive && "ring-1 ring-primary/40 border-primary/30",
+                        )}
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 space-y-1">
+                          <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium truncate max-w-[210px]">{theme.name}</span>
-                              <Badge variant="outline" className={`${category.color} text-xs`}>
+                              <span className="text-base lg:text-sm font-semibold leading-tight line-clamp-1">
+                                {theme.name}
+                              </span>
+                              <Badge variant="outline" className={cn(category.color, "text-xs")}>
                                 <CategoryIcon className="mr-1 h-3 w-3" />
                                 {theme.category}
                               </Badge>
-                              <Badge className={`${momentum.color} text-xs`}>
+                              <Badge className={cn(momentum.color, "text-xs")}>
                                 <MomentumIcon className="mr-1 h-3 w-3" />
                                 {momentum.label}
                               </Badge>
                             </div>
-                            <p className="line-clamp-1 text-xs text-muted-foreground">{theme.description}</p>
+                            <p className="mt-2 text-sm lg:text-xs text-muted-foreground line-clamp-2 lg:line-clamp-1">
+                              {theme.description}
+                            </p>
                           </div>
 
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="shrink-0 flex items-center gap-2">
                             <div className="text-right">
                               <p
-                                className={`text-sm font-semibold tabular-nums ${
-                                  theme.avgChangePercent >= 0 ? "text-red-500" : "text-blue-500"
-                                }`}
+                                className={cn(
+                                  "text-base lg:text-sm font-semibold tabular-nums",
+                                  theme.avgChangePercent >= 0 ? "text-red-500" : "text-blue-500",
+                                )}
                               >
                                 {theme.avgChangePercent >= 0 ? "+" : ""}
                                 {theme.avgChangePercent.toFixed(2)}%
@@ -287,17 +397,17 @@ export function ThemeExplorer() {
                   })}
 
                   {filteredThemes.length === 0 && (
-                    <div className="rounded-lg border bg-card p-10 text-center text-sm text-muted-foreground">
+                    <div className="rounded-2xl border bg-card p-10 text-center text-sm text-muted-foreground">
                       조건에 맞는 테마가 없어요.
                     </div>
                   )}
                 </div>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
 
           {/* RIGHT: 상세 패널 (데스크탑) */}
-          <Card className="min-h-0 hidden lg:flex flex-col">
+          <Card className="min-h-0 hidden lg:flex flex-col overflow-hidden">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -349,17 +459,18 @@ export function ThemeExplorer() {
                     <p className="text-sm text-muted-foreground">{selectedTheme.description}</p>
                   </div>
 
-                  {/* 통계 */}
-                  <div className="grid grid-cols-4 gap-3">
+                  {/* 통계 (더 안전하게: 2~4열) */}
+                  <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
                     <div className="rounded-lg bg-muted/50 p-3 text-center">
                       <p className="text-lg font-bold">{selectedTheme.stockCount}</p>
                       <p className="text-xs text-muted-foreground">종목 수</p>
                     </div>
                     <div className="rounded-lg bg-muted/50 p-3 text-center">
                       <p
-                        className={`text-lg font-bold tabular-nums ${
-                          selectedTheme.avgChangePercent >= 0 ? "text-red-500" : "text-blue-500"
-                        }`}
+                        className={cn(
+                          "text-lg font-bold tabular-nums",
+                          selectedTheme.avgChangePercent >= 0 ? "text-red-500" : "text-blue-500",
+                        )}
                       >
                         {selectedTheme.avgChangePercent >= 0 ? "+" : ""}
                         {selectedTheme.avgChangePercent.toFixed(2)}%
@@ -390,7 +501,7 @@ export function ThemeExplorer() {
                     </div>
                   </div>
 
-                  {/* 종목 목록(남은 높이 전부) */}
+                  {/* 종목 목록: native scroll */}
                   <div className="flex-1 min-h-0 space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium">테마 종목</p>
@@ -399,8 +510,8 @@ export function ThemeExplorer() {
                       </Badge>
                     </div>
 
-                    <ScrollArea className="h-full">
-                      <div className="space-y-1 pr-3 pb-2">
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-2 pb-2">
+                      <div className="space-y-1">
                         {themeStocks.map((stock, idx) => (
                           <Link
                             key={stock.ticker}
@@ -419,9 +530,10 @@ export function ThemeExplorer() {
                               <div className="text-right">
                                 <p className="font-medium tabular-nums">{stock.price.toLocaleString()}원</p>
                                 <p
-                                  className={`text-xs tabular-nums ${
-                                    stock.changePercent >= 0 ? "text-red-500" : "text-blue-500"
-                                  }`}
+                                  className={cn(
+                                    "text-xs tabular-nums",
+                                    stock.changePercent >= 0 ? "text-red-500" : "text-blue-500",
+                                  )}
                                 >
                                   {stock.changePercent >= 0 ? "+" : ""}
                                   {stock.changePercent.toFixed(2)}%
@@ -445,7 +557,7 @@ export function ThemeExplorer() {
                           </Link>
                         ))}
                       </div>
-                    </ScrollArea>
+                    </div>
                   </div>
                 </div>
               )}
@@ -454,33 +566,57 @@ export function ThemeExplorer() {
         </div>
       </div>
 
-      {/* MOBILE: 상세는 Dialog로 (데스크탑은 우측 패널) */}
+      {/* MOBILE: 상세는 Dialog(바텀시트)로 */}
       <Dialog open={!isLg && !!selectedTheme} onOpenChange={(open) => (!open ? closeDetail() : null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent
+          className={cn(
+            // base
+            "p-0 w-full max-w-none overflow-hidden",
+            // mobile bottom sheet
+            "fixed left-0 right-0 bottom-0 top-auto translate-x-0 translate-y-0",
+            "h-[85svh] rounded-t-2xl border-t",
+            // >= sm : centered modal
+            "sm:left-1/2 sm:top-1/2 sm:right-auto sm:bottom-auto sm:-translate-x-1/2 sm:-translate-y-1/2",
+            "sm:h-auto sm:max-h-[85vh] sm:rounded-lg sm:max-w-2xl sm:border",
+          )}
+        >
           {selectedTheme && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {selectedTheme.name}
-                  <Badge className={momentumConfig[selectedTheme.momentum as MomentumKey].color}>
-                    {momentumConfig[selectedTheme.momentum as MomentumKey].label}
-                  </Badge>
-                </DialogTitle>
-              </DialogHeader>
+            <div className="flex h-full flex-col">
+              {/* header */}
+              <div className="shrink-0 border-b border-border bg-background/70 backdrop-blur px-4 py-4">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <span className="truncate">{selectedTheme.name}</span>
+                    <Badge className={momentumConfig[selectedTheme.momentum as MomentumKey].color}>
+                      {momentumConfig[selectedTheme.momentum as MomentumKey].label}
+                    </Badge>
+                    <button
+                      type="button"
+                      className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-xl hover:bg-muted/40"
+                      onClick={closeDetail}
+                      aria-label="close"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </DialogTitle>
+                </DialogHeader>
+                <p className="mt-2 text-sm text-muted-foreground">{selectedTheme.description}</p>
+              </div>
 
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">{selectedTheme.description}</p>
-
-                <div className="grid grid-cols-4 gap-3">
+              {/* body scroll */}
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 pb-[env(safe-area-inset-bottom)] space-y-4">
+                {/* stats: mobile 2 cols */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="rounded-lg bg-muted/50 p-3 text-center">
                     <p className="text-lg font-bold">{selectedTheme.stockCount}</p>
                     <p className="text-xs text-muted-foreground">종목 수</p>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-3 text-center">
                     <p
-                      className={`text-lg font-bold tabular-nums ${
-                        selectedTheme.avgChangePercent >= 0 ? "text-red-500" : "text-blue-500"
-                      }`}
+                      className={cn(
+                        "text-lg font-bold tabular-nums",
+                        selectedTheme.avgChangePercent >= 0 ? "text-red-500" : "text-blue-500",
+                      )}
                     >
                       {selectedTheme.avgChangePercent >= 0 ? "+" : ""}
                       {selectedTheme.avgChangePercent.toFixed(2)}%
@@ -499,6 +635,7 @@ export function ThemeExplorer() {
                   </div>
                 </div>
 
+                {/* related */}
                 <div className="space-y-2">
                   <p className="text-sm font-medium">연관 테마</p>
                   <div className="flex flex-wrap gap-2">
@@ -510,59 +647,53 @@ export function ThemeExplorer() {
                   </div>
                 </div>
 
+                {/* stocks */}
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">테마 종목</p>
-                  <ScrollArea className="h-[280px]">
-                    <div className="space-y-1 pr-3 pb-2">
-                      {themeStocks.map((stock, idx) => (
-                        <Link
-                          key={stock.ticker}
-                          href={`/app/stock/${stock.ticker}`}
-                          className="flex items-center justify-between rounded-md p-2 transition-colors hover:bg-muted"
-                          onClick={closeDetail}
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="w-6 text-center text-xs text-muted-foreground">{idx + 1}</span>
-                            <div>
-                              <p className="font-medium">{stock.name}</p>
-                              <p className="text-xs text-muted-foreground">{stock.ticker}</p>
-                            </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">테마 종목</p>
+                    <Badge variant="outline" className="text-xs text-muted-foreground">
+                      {themeStocks.length}개
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-2">
+                    {themeStocks.map((stock, idx) => (
+                      <Link
+                        key={stock.ticker}
+                        href={`/app/stock/${stock.ticker}`}
+                        className="flex items-center justify-between rounded-2xl border bg-card p-4 transition-colors hover:bg-muted"
+                        onClick={closeDetail}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="w-6 text-center text-xs text-muted-foreground shrink-0">{idx + 1}</span>
+                          <div className="min-w-0">
+                            <p className="font-semibold truncate">{stock.name}</p>
+                            <p className="text-xs text-muted-foreground">{stock.ticker}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className="text-right">
+                            <p className="font-semibold tabular-nums">{stock.price.toLocaleString()}원</p>
+                            <p
+                              className={cn(
+                                "text-xs tabular-nums",
+                                stock.changePercent >= 0 ? "text-red-500" : "text-blue-500",
+                              )}
+                            >
+                              {stock.changePercent >= 0 ? "+" : ""}
+                              {stock.changePercent.toFixed(2)}%
+                            </p>
                           </div>
 
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <p className="font-medium tabular-nums">{stock.price.toLocaleString()}원</p>
-                              <p
-                                className={`text-xs tabular-nums ${
-                                  stock.changePercent >= 0 ? "text-red-500" : "text-blue-500"
-                                }`}
-                              >
-                                {stock.changePercent >= 0 ? "+" : ""}
-                                {stock.changePercent.toFixed(2)}%
-                              </p>
-                            </div>
-
-                            <div className="w-20 text-right">
-                              <div className="mb-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                                <div
-                                  className="h-full rounded-full bg-primary"
-                                  style={{ width: `${Math.min(stock.themeWeight, 100)}%` }}
-                                />
-                              </div>
-                              <p className="text-xs text-muted-foreground tabular-nums">
-                                비중 {stock.themeWeight.toFixed(1)}%
-                              </p>
-                            </div>
-
-                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </ScrollArea>
+                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </DialogContent>
       </Dialog>
