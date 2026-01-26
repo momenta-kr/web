@@ -477,7 +477,7 @@ export function RealtimeNews() {
   }
 
   return (
-    <section className="w-full" style={{ height: "calc(100dvh - var(--app-header-h, 64px))" }}>
+    <section className="w-full p-4" style={{ height: "calc(100dvh - var(--app-header-h, 64px))" }}>
       <Card className="h-full border-border bg-card overflow-hidden">
         <CardContent className="h-full p-0 flex flex-col min-h-0">
           {/* ======= Top line ======= */}
