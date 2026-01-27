@@ -87,7 +87,7 @@ export function NewsCluster({ stockName, className }: NewsClusterProps) {
                 <span className="text-xs text-muted-foreground">연관 종목</span>
                 <div className="flex flex-wrap gap-1.5">
                   {cluster.stocks.map((stock) => (
-                    <Link key={stock.ticker} href={`/app/stock/${stock.ticker}`}>
+                    <Link key={stock.ticker} href={`/stock/${stock.ticker}`}>
                       <Badge
                         variant="secondary"
                         className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"

@@ -515,7 +515,7 @@ export function ThemeExplorer() {
                         {themeStocks.map((stock, idx) => (
                           <Link
                             key={stock.ticker}
-                            href={`/app/stock/${stock.ticker}`}
+                            href={`stock/${stock.ticker}`}
                             className="flex items-center justify-between rounded-md p-2 transition-colors hover:bg-muted"
                           >
                             <div className="flex items-center gap-3">
@@ -660,7 +660,7 @@ export function ThemeExplorer() {
                     {themeStocks.map((stock, idx) => (
                       <Link
                         key={stock.ticker}
-                        href={`/app/stock/${stock.ticker}`}
+                        href={`/stock/${stock.ticker}`}
                         className="flex items-center justify-between rounded-2xl border bg-card p-4 transition-colors hover:bg-muted"
                         onClick={closeDetail}
                       >
