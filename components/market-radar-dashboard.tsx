@@ -26,13 +26,9 @@ export function MarketRadarDashboard() {
           {/* Left Column */}
           <div className="lg:col-span-9 space-y-10 min-w-0">
             <MarketOverview market={market} />
-
             <SectorIndices />
-
             <PriceMovers market={market} />
-
           </div>
-
           {/* Right Column */}
           <div className="lg:col-span-3 min-w-0">
             {/* ✅ 모바일에서는 sticky/스크롤 박스 OFF, lg부터 ON */}

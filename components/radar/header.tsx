@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { Activity, Bell, Settings, Newspaper, Layers } from "lucide-react"
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useAnomalies } from "@/lib/store"
-import type { Market } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { SearchCommand } from "@/components/search-command"
@@ -22,16 +21,6 @@ export function Header() {
 
   const highSeverityCount = anomalies.filter((a) => a.severity === "high").length
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
-
-  // ✅ 모바일 바텀 네비: 알림 제거
-  const mobileNav = useMemo(
-    () => [
-      { href: "/news", label: "뉴스", icon: Newspaper },
-      { href: "/themes", label: "테마", icon: Layers },
-      { href: "/settings", label: "설정", icon: Settings },
-    ],
-    []
-  )
 
   return (
     <>
@@ -81,7 +70,7 @@ export function Header() {
               <SearchCommand />
               <ThemeToggle />
 
-              {/* ✅ 알림은 상단(헤더)에서만: 모바일에서도 보이게 */}
+              {/* 알림은 헤더에만 */}
               <Button variant="ghost" size="icon" className="relative" onClick={() => setShowNotifications(true)}>
                 <Bell className="h-5 w-5" />
                 {highSeverityCount > 0 && (
@@ -103,33 +92,6 @@ export function Header() {
 
       {/* Mobile Search Dialog */}
       <MobileSearchDialog />
-
-      {/* Mobile Bottom Navigation (no alerts) */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto max-w-md">
-          <div className="grid grid-cols-3">
-            {mobileNav.map((item) => {
-              const Icon = item.icon
-              const active = isActive(item.href)
-
-              return (
-                <Link key={item.href} href={item.href} className="w-full" aria-label={item.label}>
-                  <div
-                    className={cn(
-                      "relative flex flex-col items-center justify-center gap-1 py-2 text-xs",
-                      active ? "text-foreground" : "text-muted-foreground"
-                    )}
-                  >
-                    <Icon className={cn("h-5 w-5", active && "text-foreground")} />
-                    <span className={cn(active && "font-medium")}>{item.label}</span>
-                    {active && <span className="mt-1 h-1 w-6 rounded-full bg-primary" />}
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-      </nav>
 
       {/* Notifications Dialog */}
       <Dialog open={showNotifications} onOpenChange={setShowNotifications}>
