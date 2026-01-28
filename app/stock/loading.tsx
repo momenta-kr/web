@@ -19,7 +19,7 @@ export default function Loading() {
         <div className="w-full px-4">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3 min-w-0">
-              <Link href="/public">
+              <Link href="/">
                 <Button variant="ghost" size="icon" aria-label="back" disabled>
                   <ArrowLeft className="h-5 w-5" />
                 </Button>

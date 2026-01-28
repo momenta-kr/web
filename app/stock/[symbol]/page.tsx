@@ -1095,7 +1095,7 @@ export default function StockDetailPage() {
             <p className="text-sm text-muted-foreground break-words">{String((error as any)?.message ?? "")}</p>
             <div className="flex gap-2">
               <Button onClick={() => refetch()}>다시 시도</Button>
-              <Link href="/public">
+              <Link href="/">
                 <Button variant="outline">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   홈으로
@@ -1118,7 +1118,7 @@ export default function StockDetailPage() {
         <div className="w-full px-4">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3 min-w-0">
-              <Link href="/public">
+              <Link href="/">
                 <Button variant="ghost" size="icon">
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
