@@ -68,7 +68,7 @@ export function VolumeHeatmap({ market }: VolumeHeatmapProps) {
                 {sector.stocks.map((stock) => (
                   <Link
                     key={stock.ticker}
-                    href={`/app/stock/${stock.ticker}`}
+                    href={`/stock/${stock.ticker}`}
                     style={{ flexBasis: `${stock.size - 2}%`, flexGrow: 1 }}
                     className={cn(
                       "rounded p-2 min-h-[60px] flex flex-col justify-between transition-transform hover:scale-[1.02] cursor-pointer",

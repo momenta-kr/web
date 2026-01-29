@@ -944,7 +944,7 @@ export function RealtimeNews() {
                                 {news.relatedStocks.slice(0, 8).map((stock) => (
                                   <Link
                                     key={stock.ticker}
-                                    href={`/app/stock/${stock.ticker}`}
+                                    href={`/stock/${stock.ticker}`}
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <Badge variant="outline" className="text-[11px] px-2 py-0.5 hover:bg-primary/10">
@@ -1037,7 +1037,7 @@ export function RealtimeNews() {
                               <div className="flex flex-wrap gap-1">
                                 {news.relatedStocks.length > 0 ? (
                                   news.relatedStocks.slice(0, 6).map((stock) => (
-                                    <Link key={stock.ticker} href={`/app/stock/${stock.ticker}`}>
+                                    <Link key={stock.ticker} href={`/stock/${stock.ticker}`}>
                                       <Badge
                                         variant="outline"
                                         className="text-[11px] px-1.5 py-0 hover:bg-primary/10 cursor-pointer"
