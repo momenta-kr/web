@@ -17,13 +17,18 @@ import {
   Search,
   ChevronRight,
   BarChart3,
+  Building2,
+  Cpu,
+  FileText,
+  MapPin,
+  MoreHorizontal,
   ExternalLink,
   X,
   SlidersHorizontal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { themesData, themeStats, generateThemeStocks, themeCategories } from "@/lib/mock-data"
 import { useTheme } from "@/domain/stock/queries/useTheme"
-import type { Theme } from "@/domain/stock/types/theme.model"
 
 const momentumConfig = {
   hot: { label: "급등", icon: Flame, color: "text-red-500 bg-red-500/10" },
@@ -33,34 +38,56 @@ const momentumConfig = {
   cold: { label: "급락", icon: Snowflake, color: "text-cyan-500 bg-cyan-500/10" },
 } as const
 
+const categoryConfig = {
+  산업: { icon: Building2, color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" },
+  정책: { icon: FileText, color: "bg-purple-500/10 text-purple-500 border-purple-500/20" },
+  기술: { icon: Cpu, color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
+  이슈: { icon: Sparkles, color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
+  지역: { icon: MapPin, color: "bg-rose-500/10 text-rose-500 border-rose-500/20" },
+  기타: { icon: MoreHorizontal, color: "bg-gray-500/10 text-gray-500 border-gray-500/20" },
+} as const
+
+type ThemeItem = (typeof themesData)[number]
 type MomentumKey = keyof typeof momentumConfig
-
-type ThemeView = {
-  id: string // themeCode
-  name: string // themeName
-  stockCount: number
-  avgChangePercent: number // averageChangeRate
-  momentum: MomentumKey
-}
-
-function getMomentumKey(rate: number): MomentumKey {
-  // ✅ 필요하면 임계값 조정
-  if (rate >= 5) return "hot"
-  if (rate >= 2) return "rising"
-  if (rate <= -5) return "cold"
-  if (rate <= -2) return "cooling"
-  return "stable"
-}
+type CategoryKey = keyof typeof categoryConfig
 
 export function ThemeExplorer() {
-  const { data: apiThemes, isLoading, isError, error } = useTheme()
+  const { data: apiThemes } = useTheme()
+
+  // ✅ API 테마를 themeCode 기준으로 빠르게 찾기
+  const apiThemeMap = useMemo(() => {
+    const m = new Map<string, { themeName: string; stockCount: number; averageChangeRate: number }>()
+    if (!apiThemes) return m
+    for (const t of apiThemes) m.set(String(t.themeCode), t)
+    return m
+  }, [apiThemes])
+
+  // ✅ mock themesData는 UI 구조/부가 필드 유지
+  // ✅ name / avgChangePercent / stockCount 만 실제 데이터로 덮어쓰기
+  // (매칭은 themesData의 id === API themeCode 라고 가정)
+  const themes = useMemo(() => {
+    return themesData.map((t) => {
+      const key = String((t as any).themeCode ?? (t as any).code ?? t.id)
+      const real = apiThemeMap.get(key)
+      if (!real) return t
+
+      return {
+        ...t,
+        name: real.themeName, // ✅ 실제 themeName
+        avgChangePercent: real.averageChangeRate, // ✅ 실제 changeRate
+        stockCount: real.stockCount, // ✅ 실제 stockCount
+      }
+    })
+  }, [apiThemeMap])
 
   const [isLg, setIsLg] = useState(false)
+
   useEffect(() => {
     const m = window.matchMedia("(min-width: 1024px)")
     const onChange = () => setIsLg(m.matches)
     onChange()
 
+    // safari 대응
     if (m.addEventListener) m.addEventListener("change", onChange)
     else m.addListener(onChange)
 
@@ -70,91 +97,73 @@ export function ThemeExplorer() {
     }
   }, [])
 
-  // ✅ API -> UI ViewModel (mock 제거)
-  const themes: ThemeView[] = useMemo(() => {
-    const src = (apiThemes ?? []) as Theme[]
-    return src.map((t) => {
-      const rate = Number(t.averageChangeRate ?? 0) // averageChangeRate가 % 단위라고 가정
-      return {
-        id: String(t.themeCode),
-        name: t.themeName ?? "",
-        stockCount: Number(t.stockCount ?? 0),
-        avgChangePercent: rate,
-        momentum: getMomentumKey(rate),
-      }
-    })
-  }, [apiThemes])
-
-  const totalThemes = themes.length
-  const totalStocks = useMemo(() => themes.reduce((acc, t) => acc + (t.stockCount || 0), 0), [themes])
-
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState<CategoryKey | null>(null)
   const [selectedMomentum, setSelectedMomentum] = useState<MomentumKey | null>(null)
 
-  const [selectedTheme, setSelectedTheme] = useState<ThemeView | null>(null)
+  const [selectedTheme, setSelectedTheme] = useState<ThemeItem | null>(null)
+  const [themeStocks, setThemeStocks] = useState<ReturnType<typeof generateThemeStocks>>([])
 
-  const hotThemes = useMemo(() => {
-    // 평균 등락률 상위 8개
-    const sorted = [...themes].sort((a, b) => b.avgChangePercent - a.avgChangePercent)
-    return sorted.slice(0, 8)
-  }, [themes])
+  const hotThemes = useMemo(() => themes.filter((t) => t.momentum === "hot").slice(0, 8), [themes])
 
   const filteredThemes = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     return themes.filter((theme) => {
-      const matchesSearch = !q || theme.name.toLowerCase().includes(q)
+      const matchesSearch = !q || theme.name.toLowerCase().includes(q) || theme.description.toLowerCase().includes(q)
+      const matchesCategory = !selectedCategory || theme.category === selectedCategory
       const matchesMomentum = !selectedMomentum || theme.momentum === selectedMomentum
-      return matchesSearch && matchesMomentum
+      return matchesSearch && matchesCategory && matchesMomentum
     })
-  }, [themes, searchQuery, selectedMomentum])
+  }, [themes, searchQuery, selectedCategory, selectedMomentum])
+
+  // ✅ API 로드 이후에도 선택된 테마가 최신(덮어쓴 값)으로 유지되게 동기화
+  useEffect(() => {
+    if (!selectedTheme) return
+    const next = themes.find((t) => t.id === selectedTheme.id)
+    if (next && next !== selectedTheme) setSelectedTheme(next)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [themes])
+
+  const handleThemeClick = (theme: ThemeItem) => {
+    setSelectedTheme(theme)
+    setThemeStocks(generateThemeStocks(theme.id))
+  }
 
   const clearFilters = () => {
     setSearchQuery("")
+    setSelectedCategory(null)
     setSelectedMomentum(null)
   }
 
-  const closeDetail = () => setSelectedTheme(null)
-
-  const handleThemeClick = (theme: ThemeView) => setSelectedTheme(theme)
+  const closeDetail = () => {
+    setSelectedTheme(null)
+    setThemeStocks([])
+  }
 
   return (
     <section className="w-full" style={{ height: "calc(100svh - var(--app-header-h, 64px))" }}>
       <div className="h-full px-3 py-3 sm:p-4">
         <div className="h-full grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-3 min-h-0">
-          {/* LEFT */}
+          {/* LEFT: 탐색/필터/리스트 */}
           <Card className="min-h-0 flex flex-col overflow-hidden">
+            {/* 모바일에서 시원하게: 헤더는 고정 영역(스크롤 X), 리스트만 스크롤 */}
             <div className="shrink-0 border-b border-border bg-background/70 backdrop-blur px-3 py-3 sm:px-4 sm:py-4">
+              {/* 타이틀 */}
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <BarChart3 className="h-5 w-5 text-primary" />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <div className="text-base sm:text-lg font-semibold truncate">테마 탐색기</div>
-
                       <Badge variant="outline" className="text-[11px] text-muted-foreground">
-                        {totalThemes.toLocaleString("ko-KR")}개
-                      </Badge>
-
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[11px]",
-                          isError ? "text-red-500 border-red-500/30" : "text-muted-foreground",
-                        )}
-                      >
-                        {isLoading ? "API 로딩중..." : isError ? "API 에러" : `총 ${totalStocks.toLocaleString("ko-KR")}종목`}
+                        {themeStats.totalThemes}개
                       </Badge>
                     </div>
-
                     <div className="text-[11px] text-muted-foreground">
+                      {themeStats.totalStocks}종목
+                      <span className="mx-1 text-muted-foreground/40">•</span>
                       {filteredThemes.length.toLocaleString("ko-KR")}개 표시
                     </div>
-
-                    {isError && (
-                      <div className="mt-1 text-[11px] text-red-500/90 line-clamp-2">
-                        {(error as any)?.message ?? "테마 API 호출 실패"}
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -163,7 +172,7 @@ export function ThemeExplorer() {
                 </Button>
               </div>
 
-              {/* HOT */}
+              {/* HOT: 모바일은 가로 스크롤 스트립 */}
               <div className="mt-3">
                 <div className="flex items-center gap-2 mb-2">
                   <Flame className="h-4 w-4 text-red-500" />
@@ -182,7 +191,7 @@ export function ThemeExplorer() {
                       <span className="max-w-[180px] truncate">{theme.name}</span>
                       <span className="text-xs tabular-nums">
                         {theme.avgChangePercent > 0 ? "+" : ""}
-                        {theme.avgChangePercent.toFixed(2)}%
+                        {theme.avgChangePercent.toFixed(1)}%
                       </span>
                     </button>
                   ))}
@@ -193,7 +202,7 @@ export function ThemeExplorer() {
               <div className="mt-3 relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="테마명 검색..."
+                  placeholder="테마명 또는 키워드 검색..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="h-10 pl-9 pr-10 rounded-xl"
@@ -210,18 +219,53 @@ export function ThemeExplorer() {
                 )}
               </div>
 
-              {/* 필터: 모멘텀만 (카테고리는 API에 없음) */}
+              {/* 필터: 모바일은 접기/펼치기, 데스크탑은 항상 노출 */}
               <div className="mt-3 lg:hidden">
                 <details className="rounded-2xl border border-border bg-background p-3">
                   <summary className="cursor-pointer list-none">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <SlidersHorizontal className="h-4 w-4" />
                       필터
-                      <span className="ml-auto text-[11px]">{selectedMomentum ?? "전체"}</span>
+                      <span className="ml-auto text-[11px]">
+                        {selectedCategory ?? "전체"} · {selectedMomentum ?? "전체"}
+                      </span>
                     </div>
                   </summary>
 
                   <div className="mt-3 space-y-3">
+                    {/* 카테고리 */}
+                    <div>
+                      <div className="text-[11px] text-muted-foreground mb-2">카테고리</div>
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                        <Button
+                          variant={selectedCategory === null ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedCategory(null)}
+                          className="h-8 text-xs shrink-0 rounded-full"
+                        >
+                          전체
+                        </Button>
+                        {themeCategories.map((cat) => {
+                          const c = cat as CategoryKey
+                          const Icon = categoryConfig[c].icon
+                          const active = selectedCategory === c
+                          return (
+                            <Button
+                              key={c}
+                              variant={active ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setSelectedCategory(active ? null : c)}
+                              className="h-8 text-xs shrink-0 rounded-full"
+                            >
+                              <Icon className="mr-1 h-3 w-3" />
+                              {c}
+                            </Button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 모멘텀 */}
                     <div>
                       <div className="text-[11px] text-muted-foreground mb-2">모멘텀</div>
                       <div className="flex items-center gap-2 overflow-x-auto pb-1">
@@ -235,9 +279,7 @@ export function ThemeExplorer() {
                               onClick={() => setSelectedMomentum(active ? null : key)}
                               className={cn(
                                 "shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-2 text-xs font-medium transition-colors border",
-                                active
-                                  ? "bg-primary text-primary-foreground border-primary"
-                                  : "bg-background border-border hover:bg-muted/30",
+                                active ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-muted/30",
                               )}
                             >
                               <Icon className="h-3.5 w-3.5" />
@@ -260,6 +302,7 @@ export function ThemeExplorer() {
                 </details>
               </div>
 
+              {/* 데스크탑 필터 */}
               <div className="mt-3 hidden lg:block space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-xs text-muted-foreground">
@@ -270,6 +313,34 @@ export function ThemeExplorer() {
                   <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={clearFilters}>
                     필터 초기화
                   </Button>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  <Button
+                    variant={selectedCategory === null ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategory(null)}
+                    className="h-7 text-xs"
+                  >
+                    전체
+                  </Button>
+                  {themeCategories.map((cat) => {
+                    const c = cat as CategoryKey
+                    const Icon = categoryConfig[c].icon
+                    const active = selectedCategory === c
+                    return (
+                      <Button
+                        key={c}
+                        variant={active ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedCategory(active ? null : c)}
+                        className="h-7 text-xs"
+                      >
+                        <Icon className="mr-1 h-3 w-3" />
+                        {c}
+                      </Button>
+                    )
+                  })}
                 </div>
 
                 <div className="flex flex-wrap gap-1.5">
@@ -295,13 +366,15 @@ export function ThemeExplorer() {
               </div>
             </div>
 
-            {/* 리스트 */}
+            {/* 리스트: 모바일에서 깨지는 ScrollArea 제거 → native overflow */}
             <CardContent className="flex-1 min-h-0 p-0">
               <div className="h-full overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-4 pb-[env(safe-area-inset-bottom)]">
                 <div className="space-y-3">
                   {filteredThemes.map((theme) => {
-                    const momentum = momentumConfig[theme.momentum]
+                    const momentum = momentumConfig[theme.momentum as MomentumKey]
                     const MomentumIcon = momentum.icon
+                    const category = categoryConfig[theme.category as CategoryKey]
+                    const CategoryIcon = category.icon
                     const isActive = selectedTheme?.id === theme.id
 
                     return (
@@ -320,19 +393,17 @@ export function ThemeExplorer() {
                               <span className="text-base lg:text-sm font-semibold leading-tight line-clamp-1">
                                 {theme.name}
                               </span>
-
+                              <Badge variant="outline" className={cn(category.color, "text-xs")}>
+                                <CategoryIcon className="mr-1 h-3 w-3" />
+                                {theme.category}
+                              </Badge>
                               <Badge className={cn(momentum.color, "text-xs")}>
                                 <MomentumIcon className="mr-1 h-3 w-3" />
                                 {momentum.label}
                               </Badge>
-
-                              <Badge variant="outline" className="text-xs text-muted-foreground">
-                                코드 {theme.id}
-                              </Badge>
                             </div>
-
-                            <p className="mt-2 text-sm lg:text-xs text-muted-foreground">
-                              API 데이터 기반 (설명/카테고리/종목목록은 추가 API 필요)
+                            <p className="mt-2 text-sm lg:text-xs text-muted-foreground line-clamp-2 lg:line-clamp-1">
+                              {theme.description}
                             </p>
                           </div>
 
@@ -356,7 +427,7 @@ export function ThemeExplorer() {
                     )
                   })}
 
-                  {!isLoading && filteredThemes.length === 0 && (
+                  {filteredThemes.length === 0 && (
                     <div className="rounded-2xl border bg-card p-10 text-center text-sm text-muted-foreground">
                       조건에 맞는 테마가 없어요.
                     </div>
@@ -366,7 +437,7 @@ export function ThemeExplorer() {
             </CardContent>
           </Card>
 
-          {/* RIGHT: 상세 (데스크탑) */}
+          {/* RIGHT: 상세 패널 (데스크탑) */}
           <Card className="min-h-0 hidden lg:flex flex-col overflow-hidden">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-3">
@@ -374,13 +445,13 @@ export function ThemeExplorer() {
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-lg">{selectedTheme ? "테마 상세" : "선택 대기"}</CardTitle>
                     {selectedTheme && (
-                      <Badge className={momentumConfig[selectedTheme.momentum].color}>
-                        {momentumConfig[selectedTheme.momentum].label}
+                      <Badge className={momentumConfig[selectedTheme.momentum as MomentumKey].color}>
+                        {momentumConfig[selectedTheme.momentum as MomentumKey].label}
                       </Badge>
                     )}
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {selectedTheme ? "실제 테마 데이터(이름/등락률/종목수)만 표시합니다." : "왼쪽에서 테마를 선택해 주세요."}
+                    {selectedTheme ? "우측에서 종목까지 한 번에 확인하세요." : "왼쪽에서 테마를 선택해 주세요."}
                   </p>
                 </div>
 
@@ -400,23 +471,26 @@ export function ThemeExplorer() {
                       <Sparkles className="h-5 w-5" />
                     </div>
                     <div className="text-sm font-medium">테마를 선택하면 여기에 상세가 표시돼요</div>
-                    <div className="text-xs text-muted-foreground">추가 상세는 API 확장 후 붙이면 됩니다.</div>
+                    <div className="text-xs text-muted-foreground">종목 리스트는 스크롤로 끝까지 볼 수 있어요.</div>
                   </div>
                 </div>
               ) : (
                 <div className="h-full flex flex-col min-h-0 space-y-4">
+                  {/* 상단 정보 */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="text-lg font-semibold">{selectedTheme.name}</div>
-                      <Badge variant="outline" className="text-xs text-muted-foreground">
-                        코드 {selectedTheme.id}
+                      <Badge variant="outline" className={categoryConfig[selectedTheme.category as CategoryKey].color}>
+                        {selectedTheme.category}
                       </Badge>
                       <Badge variant="outline" className="text-xs text-muted-foreground">
                         {selectedTheme.stockCount}종목
                       </Badge>
                     </div>
+                    <p className="text-sm text-muted-foreground">{selectedTheme.description}</p>
                   </div>
 
+                  {/* 통계 (더 안전하게: 2~4열) */}
                   <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
                     <div className="rounded-lg bg-muted/50 p-3 text-center">
                       <p className="text-lg font-bold">{selectedTheme.stockCount}</p>
@@ -435,27 +509,86 @@ export function ThemeExplorer() {
                       <p className="text-xs text-muted-foreground">평균 등락률</p>
                     </div>
                     <div className="rounded-lg bg-muted/50 p-3 text-center">
-                      <p className="text-lg font-bold">-</p>
-                      <p className="text-xs text-muted-foreground">시가총액 (API 필요)</p>
+                      <p className="text-lg font-bold">{selectedTheme.totalMarketCap}</p>
+                      <p className="text-xs text-muted-foreground">시가총액</p>
                     </div>
                     <div className="rounded-lg bg-muted/50 p-3 text-center">
-                      <p className="text-lg font-bold">-</p>
-                      <p className="text-xs text-muted-foreground">연관 테마 (API 필요)</p>
+                      <Badge variant="outline" className={categoryConfig[selectedTheme.category as CategoryKey].color}>
+                        {selectedTheme.category}
+                      </Badge>
+                      <p className="mt-1 text-xs text-muted-foreground">카테고리</p>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
-                    테마 종목 리스트를 표시하려면 예: <span className="font-mono">/stocks/v1/themes/{selectedTheme.id}/stocks</span> 같은
-                    엔드포인트가 추가로 필요해요.
+                  {/* 연관 테마 */}
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">연관 테마</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTheme.relatedThemes.map((rt) => (
+                        <Badge key={rt} variant="outline">
+                          {rt}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/themes/${selectedTheme.id}`}
-                      className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted"
-                    >
-                      상세 페이지로 <ExternalLink className="h-4 w-4" />
-                    </Link>
+                  {/* 종목 목록: native scroll */}
+                  <div className="flex-1 min-h-0 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">테마 종목</p>
+                      <Badge variant="outline" className="text-xs text-muted-foreground">
+                        {themeStocks.length}개
+                      </Badge>
+                    </div>
+
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-2 pb-2">
+                      <div className="space-y-1">
+                        {themeStocks.map((stock, idx) => (
+                          <Link
+                            key={stock.ticker}
+                            href={`stock/${stock.ticker}`}
+                            className="flex items-center justify-between rounded-md p-2 transition-colors hover:bg-muted"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="w-6 text-center text-xs text-muted-foreground">{idx + 1}</span>
+                              <div>
+                                <p className="font-medium">{stock.name}</p>
+                                <p className="text-xs text-muted-foreground">{stock.ticker}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <p className="font-medium tabular-nums">{stock.price.toLocaleString()}원</p>
+                                <p
+                                  className={cn(
+                                    "text-xs tabular-nums",
+                                    stock.changePercent >= 0 ? "text-red-500" : "text-blue-500",
+                                  )}
+                                >
+                                  {stock.changePercent >= 0 ? "+" : ""}
+                                  {stock.changePercent.toFixed(2)}%
+                                </p>
+                              </div>
+
+                              <div className="w-20 text-right">
+                                <div className="mb-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                                  <div
+                                    className="h-full rounded-full bg-primary"
+                                    style={{ width: `${Math.min(stock.themeWeight, 100)}%` }}
+                                  />
+                                </div>
+                                <p className="text-xs text-muted-foreground tabular-nums">
+                                  비중 {stock.themeWeight.toFixed(1)}%
+                                </p>
+                              </div>
+
+                              <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -464,7 +597,7 @@ export function ThemeExplorer() {
         </div>
       </div>
 
-      {/* MOBILE: 상세는 Dialog */}
+      {/* MOBILE: 상세는 Dialog(바텀시트)로 */}
       <Dialog open={!isLg && !!selectedTheme} onOpenChange={(open) => (!open ? closeDetail() : null)}>
         <DialogContent
           className={cn(
@@ -477,12 +610,13 @@ export function ThemeExplorer() {
         >
           {selectedTheme && (
             <div className="flex h-full flex-col">
+              {/* header */}
               <div className="shrink-0 border-b border-border bg-background/70 backdrop-blur px-4 py-4">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <span className="truncate">{selectedTheme.name}</span>
-                    <Badge className={momentumConfig[selectedTheme.momentum].color}>
-                      {momentumConfig[selectedTheme.momentum].label}
+                    <Badge className={momentumConfig[selectedTheme.momentum as MomentumKey].color}>
+                      {momentumConfig[selectedTheme.momentum as MomentumKey].label}
                     </Badge>
                     <button
                       type="button"
@@ -494,9 +628,12 @@ export function ThemeExplorer() {
                     </button>
                   </DialogTitle>
                 </DialogHeader>
+                <p className="mt-2 text-sm text-muted-foreground">{selectedTheme.description}</p>
               </div>
 
+              {/* body scroll */}
               <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 pb-[env(safe-area-inset-bottom)] space-y-4">
+                {/* stats: mobile 2 cols */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="rounded-lg bg-muted/50 p-3 text-center">
                     <p className="text-lg font-bold">{selectedTheme.stockCount}</p>
@@ -515,30 +652,74 @@ export function ThemeExplorer() {
                     <p className="text-xs text-muted-foreground">평균 등락률</p>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-3 text-center">
-                    <p className="text-lg font-bold">-</p>
-                    <p className="text-xs text-muted-foreground">시총 (API 필요)</p>
+                    <p className="text-lg font-bold">{selectedTheme.totalMarketCap}</p>
+                    <p className="text-xs text-muted-foreground">시가총액</p>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-3 text-center">
-                    <p className="text-lg font-bold">-</p>
-                    <p className="text-xs text-muted-foreground">연관 (API 필요)</p>
+                    <Badge variant="outline" className={categoryConfig[selectedTheme.category as CategoryKey].color}>
+                      {selectedTheme.category}
+                    </Badge>
+                    <p className="mt-1 text-xs text-muted-foreground">카테고리</p>
                   </div>
                 </div>
 
-                <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
-                  테마 종목 리스트는 API가 추가로 필요합니다.
+                {/* related */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">연관 테마</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTheme.relatedThemes.map((rt) => (
+                      <Badge key={rt} variant="outline">
+                        {rt}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
 
-                <Link
-                  href={`/themes/${selectedTheme.id}`}
-                  className="flex items-center justify-between rounded-2xl border bg-card p-4 transition-colors hover:bg-muted"
-                  onClick={closeDetail}
-                >
-                  <div className="min-w-0">
-                    <p className="font-semibold truncate">테마 상세 페이지</p>
-                    <p className="text-xs text-muted-foreground">/themes/{selectedTheme.id}</p>
+                {/* stocks */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">테마 종목</p>
+                    <Badge variant="outline" className="text-xs text-muted-foreground">
+                      {themeStocks.length}개
+                    </Badge>
                   </div>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                </Link>
+
+                  <div className="space-y-2">
+                    {themeStocks.map((stock, idx) => (
+                      <Link
+                        key={stock.ticker}
+                        href={`/stock/${stock.ticker}`}
+                        className="flex items-center justify-between rounded-2xl border bg-card p-4 transition-colors hover:bg-muted"
+                        onClick={closeDetail}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="w-6 text-center text-xs text-muted-foreground shrink-0">{idx + 1}</span>
+                          <div className="min-w-0">
+                            <p className="font-semibold truncate">{stock.name}</p>
+                            <p className="text-xs text-muted-foreground">{stock.ticker}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className="text-right">
+                            <p className="font-semibold tabular-nums">{stock.price.toLocaleString()}원</p>
+                            <p
+                              className={cn(
+                                "text-xs tabular-nums",
+                                stock.changePercent >= 0 ? "text-red-500" : "text-blue-500",
+                              )}
+                            >
+                              {stock.changePercent >= 0 ? "+" : ""}
+                              {stock.changePercent.toFixed(2)}%
+                            </p>
+                          </div>
+
+                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           )}
