@@ -42,6 +42,8 @@ import LightweightStockChart from "@/components/stock/light-weight-stock-chart";
 import {AIInsight} from "@/components/stock/ai-insight";
 import {NewsCluster} from "@/components/stock/news-cluster";
 import {NewsAnalysis} from "@/components/stock/news-analysis";
+import {useStockCurrentPrice} from "@/domain/stock/queries/use-stock-current-price";
+import StockFinancialPanel from "@/components/stock/stock-financial-panel";
 
 // =========================
 // Types
@@ -553,6 +555,8 @@ function TargetPriceTrendChart({ data }: { data: TargetTrendPoint[] }) {
 export default function StockDetailPage() {
   const params = useParams()
   const symbol = params.symbol as string
+
+  const { data: stockCurrentPrice, isLoading: isStockCurrentPriceLoading } = useStockCurrentPrice(symbol)
 
   const { market } = useMarketState()
   const { anomalies } = useAnomalies(market)
@@ -1251,51 +1255,6 @@ export default function StockDetailPage() {
             <AIInsight symbol={symbol} />
             <NewsCluster stockName={stock.name} />
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <p className="text-sm text-muted-foreground">시가</p>
-                  <p className="text-xl font-bold text-foreground">{formatNumber(stock.open, 0)}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <p className="text-sm text-muted-foreground">고가</p>
-                  <p className="text-xl font-bold text-foreground">{formatNumber(stock.high, 0)}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <p className="text-sm text-muted-foreground">저가</p>
-                  <p className="text-xl font-bold text-foreground">{formatNumber(stock.low, 0)}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4">
-                  <p className="text-sm text-muted-foreground">전일 종가</p>
-                  <p className="text-xl font-bold text-foreground">{formatNumber(stock.prevClose, 0)}</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Financial */}
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold">재무정보</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {financialMetrics.map((metric) => (
-                    <div key={metric.label} className="p-3 rounded-lg bg-secondary/50">
-                      <p className="text-xs text-muted-foreground mb-1">{metric.label}</p>
-                      <p className="text-lg font-bold text-foreground">{metric.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Peers */}
             {peers.length > 0 && (
               <Card className="bg-card border-border">
@@ -1329,6 +1288,9 @@ export default function StockDetailPage() {
           {/* Right */}
           <div className="lg:col-span-1">
             <div className="sticky top-20 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pb-6">
+
+              <StockFinancialPanel data={stockCurrentPrice} isLoading={isStockCurrentPriceLoading} />
+
               {/* Investment Opinion */}
               <Card className="bg-card border-border" id="investment-opinion">
                 <CardHeader className="pb-3">

@@ -1,7 +1,7 @@
 import {apiFetchClient} from "@/lib/http/client";
 import {ThemeDto} from "@/domain/stock/types/theme.dto";
 import {Theme} from "@/domain/stock/types/theme.model";
-import {toThemeList} from "@/domain/stock/mappers/theme.mapper";
+import {toThemeModel} from "@/domain/stock/mappers/theme.mapper";
 
 export async function fetchTheme(): Promise<Theme[]> {
   const data = await apiFetchClient<ThemeDto[]>(
@@ -12,5 +12,5 @@ export async function fetchTheme(): Promise<Theme[]> {
       cache: "no-store",
     }
   )
-  return toThemeList(data);
+  return data.map(d => toThemeModel(d, {}))
 }
