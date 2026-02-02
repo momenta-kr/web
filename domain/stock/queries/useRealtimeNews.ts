@@ -1,11 +1,11 @@
-import {useQuery} from "@tanstack/react-query";
-import {fetchRealtimeNews} from "@/domain/stock/api/fetch-realtime-news";
+import {useInfiniteQuery, useQuery} from "@tanstack/react-query";
+import {fetchRealtimeNews, RealtimeNewsQuery} from "@/domain/stock/api/fetch-realtime-news";
 
-export function useRealtimeNews() {
-  return useQuery({
-    queryKey: ["realtime-news"],
-    queryFn: () => fetchRealtimeNews(),
-    retry: 1,
-    refetchInterval: 15000,
-  });
+export function useRealtimeNews(params: RealtimeNewsQuery) {
+  return useInfiniteQuery({
+    queryKey: ["realtimeNews", params],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) => fetchRealtimeNews(params, Number(pageParam ?? 0)),
+    getNextPageParam: (lastPage) => (lastPage?.last ? undefined : (lastPage?.number ?? 0) + 1),
+  })
 }
