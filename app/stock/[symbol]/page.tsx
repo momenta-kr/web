@@ -1250,65 +1250,24 @@ export default function StockDetailPage() {
               </CardContent>
             </Card>
 
-            {/* News Analysis */}
-            <NewsAnalysis stockName={stock.name} />
-            <AIInsight symbol={symbol} />
-            <NewsCluster stockName={stock.name} />
-
-            {/* Peers */}
-            {peers.length > 0 && (
-              <Card className="bg-card border-border">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold">같은 섹터 종목</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {peers.map((p) => {
-                      const pct = p.changeRate ?? p.changePercent
-                      const up = (pct ?? 0) >= 0
-                      return (
-                        <Link
-                          key={p.symbol}
-                          href={`/stocks/${p.symbol}`}
-                          className="flex flex-col items-center p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
-                        >
-                          <span className="font-medium text-foreground">{p.name}</span>
-                          <span className={cn("text-lg font-bold mt-1", up ? "text-chart-1" : "text-chart-2")}>
-                            {pct == null ? "-" : `${up ? "+" : ""}${pct.toFixed(2)}%`}
-                          </span>
-                        </Link>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Right */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-20 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pb-6">
-
-              <StockFinancialPanel data={stockCurrentPrice} isLoading={isStockCurrentPriceLoading} />
-
-              {/* Investment Opinion */}
-              <Card className="bg-card border-border" id="investment-opinion">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-base font-semibold">증권사 투자의견</CardTitle>
-                    <Badge
+            {/* Investment Opinion */}
+            <Card className="bg-card border-border" id="investment-opinion">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base font-semibold">증권사 투자의견</CardTitle>
+                  <Badge
                       variant="outline"
                       className={cn("text-[11px]", recommendationBadgeClass(investmentOpinionStats.consensus.rec))}
-                    >
-                      컨센서스 {recommendationLabel(investmentOpinionStats.consensus.rec)} ·{" "}
-                      {formatNumber(investmentOpinionStats.consensus.strengthPct, 0)}%
-                    </Badge>
-                  </div>
-                </CardHeader>
+                  >
+                    컨센서스 {recommendationLabel(investmentOpinionStats.consensus.rec)} ·{" "}
+                    {formatNumber(investmentOpinionStats.consensus.strengthPct, 0)}%
+                  </Badge>
+                </div>
+              </CardHeader>
 
-                <CardContent className="space-y-3">
-                  {/* ✅ NEW: 최근 N일 신규 리포트 알림 (이전 방문 대비) */}
-                  {showNewReportAlert && newReportCount > 0 && (
+              <CardContent className="space-y-3">
+                {/* ✅ NEW: 최근 N일 신규 리포트 알림 (이전 방문 대비) */}
+                {showNewReportAlert && newReportCount > 0 && (
                     <div className="rounded-lg border border-border bg-secondary/30 px-3 py-2 flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
@@ -1322,19 +1281,19 @@ export default function StockDetailPage() {
                         </p>
                       </div>
                       <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 px-2 text-xs shrink-0"
-                        onClick={() => setShowNewReportAlert(false)}
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 px-2 text-xs shrink-0"
+                          onClick={() => setShowNewReportAlert(false)}
                       >
                         확인
                       </Button>
                     </div>
-                  )}
+                )}
 
-                  {/* Controls */}
-                  <div className="flex flex-wrap items-center gap-1">
-                    {(
+                {/* Controls */}
+                <div className="flex flex-wrap items-center gap-1">
+                  {(
                       [
                         ["1W", "1주"],
                         ["2W", "2주"],
@@ -1344,59 +1303,59 @@ export default function StockDetailPage() {
                         ["3M", "3달"],
                         ["6M", "6달"],
                       ] as const
-                    ).map(([key, label]) => (
+                  ).map(([key, label]) => (
                       <Button
-                        key={key}
-                        size="sm"
-                        variant={opinionRange === key ? "default" : "ghost"}
-                        onClick={() => setOpinionRange(key)}
-                        className="h-8 px-2 text-xs"
+                          key={key}
+                          size="sm"
+                          variant={opinionRange === key ? "default" : "ghost"}
+                          onClick={() => setOpinionRange(key)}
+                          className="h-8 px-2 text-xs"
                       >
                         {label}
                       </Button>
-                    ))}
+                  ))}
 
-                    <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-                      <input
+                  <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                    <input
                         type="checkbox"
                         checked={dedupeSameBrokerDay}
                         onChange={(e) => setDedupeSameBrokerDay(e.target.checked)}
                         className="h-4 w-4"
-                      />
-                      같은날 중복 제거
-                    </label>
-                  </div>
+                    />
+                    같은날 중복 제거
+                  </label>
+                </div>
 
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-muted-foreground">
-                      {investmentOpinionStats.start && investmentOpinionStats.end
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    {investmentOpinionStats.start && investmentOpinionStats.end
                         ? `${formatYmd(investmentOpinionStats.start)} ~ ${formatYmd(investmentOpinionStats.end)}`
                         : "기간 데이터 없음"}
-                    </p>
+                  </p>
 
-                    <select
+                  <select
                       value={brokerSort}
                       onChange={(e) => setBrokerSort(e.target.value as BrokerSort)}
                       className="h-8 rounded-md border border-border bg-background px-2 text-xs"
-                    >
-                      <option value="COUNT">정렬: 리포트수</option>
-                      <option value="UPSIDE">정렬: 상승여력</option>
-                      <option value="BULLISH">정렬: 강세점수</option>
-                      <option value="RECENT">정렬: 최신</option>
-                    </select>
-                  </div>
+                  >
+                    <option value="COUNT">정렬: 리포트수</option>
+                    <option value="UPSIDE">정렬: 상승여력</option>
+                    <option value="BULLISH">정렬: 강세점수</option>
+                    <option value="RECENT">정렬: 최신</option>
+                  </select>
+                </div>
 
-                  {/* State */}
-                  {isInvestmentOpinionLoading ? (
+                {/* State */}
+                {isInvestmentOpinionLoading ? (
                     <div className="space-y-2">
                       <div className="h-10 rounded-lg bg-secondary/50" />
                       <div className="h-24 rounded-lg bg-secondary/50" />
                     </div>
-                  ) : isInvestmentOpinionError ? (
+                ) : isInvestmentOpinionError ? (
                     <p className="text-sm text-muted-foreground">투자의견 데이터를 불러오지 못했어요.</p>
-                  ) : investmentOpinionStats.periodItems.length === 0 ? (
+                ) : investmentOpinionStats.periodItems.length === 0 ? (
                     <p className="text-sm text-muted-foreground">선택한 기간에 해당하는 투자의견이 없어요.</p>
-                  ) : (
+                ) : (
                     <>
                       {/* ✅ NEW: 목표가 추세 차트 (기간 내 날짜별 평균/중앙값 목표가) */}
                       <div className="space-y-2">
@@ -1411,36 +1370,36 @@ export default function StockDetailPage() {
 
                       {/* ✅ NEW: 의견 변화 이벤트 뱃지 (업그레이드/다운그레이드 발생 날짜) */}
                       {investmentOpinionStats.changeEvents.length > 0 && (
-                        <div className="rounded-lg border border-border bg-background/50 p-3">
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs text-muted-foreground">의견 변화 이벤트</p>
-                            <p className="text-[11px] text-muted-foreground">상향/하향 발생일</p>
+                          <div className="rounded-lg border border-border bg-background/50 p-3">
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-muted-foreground">의견 변화 이벤트</p>
+                              <p className="text-[11px] text-muted-foreground">상향/하향 발생일</p>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {investmentOpinionStats.changeEvents.slice(0, 12).map((e) => {
+                                const date = `${e.ymd.slice(0, 4)}-${e.ymd.slice(4, 6)}-${e.ymd.slice(6, 8)}`
+                                const up = e.upgrades
+                                const down = e.downgrades
+                                return (
+                                    <Badge
+                                        key={e.ymd}
+                                        variant="outline"
+                                        className={cn(
+                                            "text-[11px] flex items-center gap-1",
+                                            up > down ? "border-chart-1/30 bg-chart-1/10 text-chart-1" : "",
+                                            down > up ? "border-chart-2/30 bg-chart-2/10 text-chart-2" : "",
+                                            up === down ? "border-border bg-secondary/40 text-muted-foreground" : "",
+                                        )}
+                                        title={`${date} · 상향 ${up} / 하향 ${down}`}
+                                    >
+                                      {up > 0 && <ArrowUpRight className="h-3.5 w-3.5" />}
+                                      {down > 0 && <ArrowDownRight className="h-3.5 w-3.5" />}
+                                      {date} · {up}/{down}
+                                    </Badge>
+                                )
+                              })}
+                            </div>
                           </div>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {investmentOpinionStats.changeEvents.slice(0, 12).map((e) => {
-                              const date = `${e.ymd.slice(0, 4)}-${e.ymd.slice(4, 6)}-${e.ymd.slice(6, 8)}`
-                              const up = e.upgrades
-                              const down = e.downgrades
-                              return (
-                                <Badge
-                                  key={e.ymd}
-                                  variant="outline"
-                                  className={cn(
-                                    "text-[11px] flex items-center gap-1",
-                                    up > down ? "border-chart-1/30 bg-chart-1/10 text-chart-1" : "",
-                                    down > up ? "border-chart-2/30 bg-chart-2/10 text-chart-2" : "",
-                                    up === down ? "border-border bg-secondary/40 text-muted-foreground" : "",
-                                  )}
-                                  title={`${date} · 상향 ${up} / 하향 ${down}`}
-                                >
-                                  {up > 0 && <ArrowUpRight className="h-3.5 w-3.5" />}
-                                  {down > 0 && <ArrowDownRight className="h-3.5 w-3.5" />}
-                                  {date} · {up}/{down}
-                                </Badge>
-                              )
-                            })}
-                          </div>
-                        </div>
                       )}
 
                       {/* Summary Tiles */}
@@ -1466,18 +1425,18 @@ export default function StockDetailPage() {
                         <div className="rounded-lg bg-secondary/50 p-3">
                           <p className="text-[11px] text-muted-foreground">상승여력(평균/중앙)</p>
                           <p
-                            className={cn(
-                              "mt-1 text-sm font-semibold",
-                              (investmentOpinionStats.upside.avg ?? 0) >= 0 ? "text-chart-1" : "text-chart-2",
-                            )}
+                              className={cn(
+                                  "mt-1 text-sm font-semibold",
+                                  (investmentOpinionStats.upside.avg ?? 0) >= 0 ? "text-chart-1" : "text-chart-2",
+                              )}
                           >
                             {investmentOpinionStats.upside.avg == null
-                              ? "-"
-                              : `${investmentOpinionStats.upside.avg >= 0 ? "+" : ""}${formatNumber(investmentOpinionStats.upside.avg, 2)}%`}
+                                ? "-"
+                                : `${investmentOpinionStats.upside.avg >= 0 ? "+" : ""}${formatNumber(investmentOpinionStats.upside.avg, 2)}%`}
                             <span className="text-muted-foreground font-normal"> / </span>
                             {investmentOpinionStats.upside.median == null
-                              ? "-"
-                              : `${investmentOpinionStats.upside.median >= 0 ? "+" : ""}${formatNumber(investmentOpinionStats.upside.median, 2)}%`}
+                                ? "-"
+                                : `${investmentOpinionStats.upside.median >= 0 ? "+" : ""}${formatNumber(investmentOpinionStats.upside.median, 2)}%`}
                           </p>
                         </div>
 
@@ -1512,20 +1471,20 @@ export default function StockDetailPage() {
 
                       {/* Outliers */}
                       {investmentOpinionStats.outliers.length > 0 && (
-                        <div className="rounded-lg border border-border bg-background/60 p-3">
-                          <p className="text-xs text-muted-foreground">목표가 이상치(아웃라이어)</p>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {investmentOpinionStats.outliers.map((o) => (
-                              <button
-                                key={o.broker}
-                                onClick={() => setSelectedBroker(o.broker)}
-                                className="rounded-md border border-border bg-secondary/40 px-2 py-1 text-[11px] text-foreground hover:bg-secondary transition-colors"
-                              >
-                                {o.broker} · {formatNumber(o.target, 0)}원 · {formatYmd(o.date)}
-                              </button>
-                            ))}
+                          <div className="rounded-lg border border-border bg-background/60 p-3">
+                            <p className="text-xs text-muted-foreground">목표가 이상치(아웃라이어)</p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {investmentOpinionStats.outliers.map((o) => (
+                                  <button
+                                      key={o.broker}
+                                      onClick={() => setSelectedBroker(o.broker)}
+                                      className="rounded-md border border-border bg-secondary/40 px-2 py-1 text-[11px] text-foreground hover:bg-secondary transition-colors"
+                                  >
+                                    {o.broker} · {formatNumber(o.target, 0)}원 · {formatYmd(o.date)}
+                                  </button>
+                              ))}
+                            </div>
                           </div>
-                        </div>
                       )}
 
                       {/* Distribution */}
@@ -1538,58 +1497,58 @@ export default function StockDetailPage() {
                         const unkPct = total ? (d.UNKNOWN / total) * 100 : 0
 
                         return (
-                          <div className="rounded-lg border border-border overflow-hidden">
-                            <div className="px-3 py-2 bg-secondary/30 flex items-center justify-between">
-                              <p className="text-xs text-muted-foreground">의견 분포</p>
-                              <p className="text-xs text-muted-foreground">
-                                BUY {d.BUY} · HOLD {d.HOLD} · SELL {d.SELL} · ? {d.UNKNOWN}
-                              </p>
-                            </div>
-
-                            <div className="px-3 py-3 space-y-2">
-                              <div className="h-2 w-full rounded bg-secondary/50 overflow-hidden flex">
-                                <div className="h-2 bg-chart-1" style={{ width: `${buyPct}%` }} />
-                                <div className="h-2 bg-secondary" style={{ width: `${holdPct}%` }} />
-                                <div className="h-2 bg-chart-2" style={{ width: `${sellPct}%` }} />
-                                <div className="h-2 bg-muted" style={{ width: `${unkPct}%` }} />
+                            <div className="rounded-lg border border-border overflow-hidden">
+                              <div className="px-3 py-2 bg-secondary/30 flex items-center justify-between">
+                                <p className="text-xs text-muted-foreground">의견 분포</p>
+                                <p className="text-xs text-muted-foreground">
+                                  BUY {d.BUY} · HOLD {d.HOLD} · SELL {d.SELL} · ? {d.UNKNOWN}
+                                </p>
                               </div>
 
-                              <div className="grid grid-cols-4 gap-2 text-[11px] text-muted-foreground">
-                                <div>BUY {formatNumber(buyPct, 0)}%</div>
-                                <div>HOLD {formatNumber(holdPct, 0)}%</div>
-                                <div>SELL {formatNumber(sellPct, 0)}%</div>
-                                <div>? {formatNumber(unkPct, 0)}%</div>
+                              <div className="px-3 py-3 space-y-2">
+                                <div className="h-2 w-full rounded bg-secondary/50 overflow-hidden flex">
+                                  <div className="h-2 bg-chart-1" style={{ width: `${buyPct}%` }} />
+                                  <div className="h-2 bg-secondary" style={{ width: `${holdPct}%` }} />
+                                  <div className="h-2 bg-chart-2" style={{ width: `${sellPct}%` }} />
+                                  <div className="h-2 bg-muted" style={{ width: `${unkPct}%` }} />
+                                </div>
+
+                                <div className="grid grid-cols-4 gap-2 text-[11px] text-muted-foreground">
+                                  <div>BUY {formatNumber(buyPct, 0)}%</div>
+                                  <div>HOLD {formatNumber(holdPct, 0)}%</div>
+                                  <div>SELL {formatNumber(sellPct, 0)}%</div>
+                                  <div>? {formatNumber(unkPct, 0)}%</div>
+                                </div>
                               </div>
                             </div>
-                          </div>
                         )
                       })()}
 
                       {/* Timeline */}
                       {investmentOpinionStats.timeline.length > 0 && (
-                        <div className="rounded-lg border border-border overflow-hidden">
-                          <div className="px-3 py-2 bg-secondary/30">
-                            <p className="text-xs text-muted-foreground">날짜별 요약 (최근 10개)</p>
+                          <div className="rounded-lg border border-border overflow-hidden">
+                            <div className="px-3 py-2 bg-secondary/30">
+                              <p className="text-xs text-muted-foreground">날짜별 요약 (최근 10개)</p>
+                            </div>
+                            <div className="divide-y divide-border">
+                              {investmentOpinionStats.timeline.map((t) => (
+                                  <div key={t.ymd} className="px-3 py-2 flex items-center justify-between">
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-medium text-foreground">{`${t.ymd.slice(0, 4)}-${t.ymd.slice(4, 6)}-${t.ymd.slice(6, 8)}`}</p>
+                                      <p className="text-[11px] text-muted-foreground">{t.count}건</p>
+                                    </div>
+                                    <div className="flex items-end flex-col gap-1">
+                                      <Badge variant="outline" className={cn("text-[11px]", recommendationBadgeClass(t.consensus))}>
+                                        {recommendationLabel(t.consensus)}
+                                      </Badge>
+                                      <p className="text-[11px] text-muted-foreground">
+                                        {t.avgTarget == null ? "-" : `${formatNumber(t.avgTarget, 0)}원`}
+                                      </p>
+                                    </div>
+                                  </div>
+                              ))}
+                            </div>
                           </div>
-                          <div className="divide-y divide-border">
-                            {investmentOpinionStats.timeline.map((t) => (
-                              <div key={t.ymd} className="px-3 py-2 flex items-center justify-between">
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-foreground">{`${t.ymd.slice(0, 4)}-${t.ymd.slice(4, 6)}-${t.ymd.slice(6, 8)}`}</p>
-                                  <p className="text-[11px] text-muted-foreground">{t.count}건</p>
-                                </div>
-                                <div className="flex items-end flex-col gap-1">
-                                  <Badge variant="outline" className={cn("text-[11px]", recommendationBadgeClass(t.consensus))}>
-                                    {recommendationLabel(t.consensus)}
-                                  </Badge>
-                                  <p className="text-[11px] text-muted-foreground">
-                                    {t.avgTarget == null ? "-" : `${formatNumber(t.avgTarget, 0)}원`}
-                                  </p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
                       )}
 
                       {/* Broker Selector */}
@@ -1597,23 +1556,23 @@ export default function StockDetailPage() {
                         <p className="text-xs text-muted-foreground">증권사별 통계</p>
                         <div className="flex items-center gap-1">
                           <Button
-                            size="sm"
-                            variant={selectedBroker === "ALL" ? "default" : "ghost"}
-                            className="h-8 px-2 text-xs"
-                            onClick={() => setSelectedBroker("ALL")}
+                              size="sm"
+                              variant={selectedBroker === "ALL" ? "default" : "ghost"}
+                              className="h-8 px-2 text-xs"
+                              onClick={() => setSelectedBroker("ALL")}
                           >
                             전체
                           </Button>
                           <select
-                            value={selectedBroker === "ALL" ? "" : selectedBroker}
-                            onChange={(e) => setSelectedBroker(e.target.value || "ALL")}
-                            className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+                              value={selectedBroker === "ALL" ? "" : selectedBroker}
+                              onChange={(e) => setSelectedBroker(e.target.value || "ALL")}
+                              className="h-8 rounded-md border border-border bg-background px-2 text-xs"
                           >
                             <option value="">증권사 선택</option>
                             {investmentOpinionStats.brokerNames.map((b) => (
-                              <option key={b} value={b}>
-                                {b}
-                              </option>
+                                <option key={b} value={b}>
+                                  {b}
+                                </option>
                             ))}
                           </select>
                         </div>
@@ -1621,196 +1580,238 @@ export default function StockDetailPage() {
 
                       {/* Broker Table / Detail */}
                       {selectedBroker === "ALL" ? (
-                        <div className="rounded-lg border border-border overflow-hidden">
-                          <div className="px-3 py-2 bg-secondary/30">
-                            <p className="text-xs text-muted-foreground">증권사별 요약 (상위 12개)</p>
-                          </div>
+                          <div className="rounded-lg border border-border overflow-hidden">
+                            <div className="px-3 py-2 bg-secondary/30">
+                              <p className="text-xs text-muted-foreground">증권사별 요약 (상위 12개)</p>
+                            </div>
 
-                          <div className="divide-y divide-border">
-                            {investmentOpinionStats.brokers.slice(0, 12).map((b) => (
-                              <button
-                                key={b.broker}
-                                onClick={() => setSelectedBroker(b.broker)}
-                                className="w-full text-left px-3 py-2 hover:bg-secondary/40 transition-colors"
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <p className="text-sm font-medium text-foreground truncate">{b.broker}</p>
-                                    <p className="text-[11px] text-muted-foreground">
-                                      {b.latestDate ? `${formatYmd(b.latestDate)} · ${b.count}건` : `${b.count}건`}
-                                      {b.upgrades || b.downgrades ? ` · 상향 ${b.upgrades} / 하향 ${b.downgrades}` : ""}
-                                      {b.targetUp || b.targetDown ? ` · 목표↑ ${b.targetUp} / ↓ ${b.targetDown}` : ""}
-                                    </p>
-                                  </div>
+                            <div className="divide-y divide-border">
+                              {investmentOpinionStats.brokers.slice(0, 12).map((b) => (
+                                  <button
+                                      key={b.broker}
+                                      onClick={() => setSelectedBroker(b.broker)}
+                                      className="w-full text-left px-3 py-2 hover:bg-secondary/40 transition-colors"
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-medium text-foreground truncate">{b.broker}</p>
+                                        <p className="text-[11px] text-muted-foreground">
+                                          {b.latestDate ? `${formatYmd(b.latestDate)} · ${b.count}건` : `${b.count}건`}
+                                          {b.upgrades || b.downgrades ? ` · 상향 ${b.upgrades} / 하향 ${b.downgrades}` : ""}
+                                          {b.targetUp || b.targetDown ? ` · 목표↑ ${b.targetUp} / ↓ ${b.targetDown}` : ""}
+                                        </p>
+                                      </div>
 
-                                  <div className="flex flex-col items-end gap-1">
-                                    <Badge variant="outline" className={cn("text-[11px]", recommendationBadgeClass(b.latestOpinion))}>
-                                      {recommendationLabel(b.latestOpinion)}
-                                    </Badge>
-                                    <p className="text-[11px] text-muted-foreground">
-                                      {b.avgTarget == null ? "-" : `${formatNumber(b.avgTarget, 0)}원`}
-                                      {b.avgUpsidePct == null
-                                        ? ""
-                                        : ` · ${b.avgUpsidePct >= 0 ? "+" : ""}${formatNumber(b.avgUpsidePct, 2)}%`}
-                                    </p>
-                                  </div>
-                                </div>
+                                      <div className="flex flex-col items-end gap-1">
+                                        <Badge variant="outline" className={cn("text-[11px]", recommendationBadgeClass(b.latestOpinion))}>
+                                          {recommendationLabel(b.latestOpinion)}
+                                        </Badge>
+                                        <p className="text-[11px] text-muted-foreground">
+                                          {b.avgTarget == null ? "-" : `${formatNumber(b.avgTarget, 0)}원`}
+                                          {b.avgUpsidePct == null
+                                              ? ""
+                                              : ` · ${b.avgUpsidePct >= 0 ? "+" : ""}${formatNumber(b.avgUpsidePct, 2)}%`}
+                                        </p>
+                                      </div>
+                                    </div>
 
-                                <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                                    <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
                                   <span>
                                     목표가: {b.minTarget == null ? "-" : formatNumber(b.minTarget, 0)} ~{" "}
                                     {b.maxTarget == null ? "-" : formatNumber(b.maxTarget, 0)}
                                   </span>
-                                  <span>강세점수 {formatNumber(b.bullish, 2)}</span>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        (() => {
-                          const broker = selectedBroker
-                          const stat = investmentOpinionStats.brokers.find((x) => x.broker === broker) ?? null
-                          const rows = investmentOpinionStats.periodItems
-                            .filter((x) => x.memberCompanyName === broker)
-                            .sort((a, b) => toYmdKey(b.stockBusinessDate).localeCompare(toYmdKey(a.stockBusinessDate)))
-                            .slice(0, 12)
-
-                          const deltas = rows.map((it, idx) => {
-                            const prev = rows[idx + 1]
-                            const curT = it.htsTargetPrice
-                            const prevT = prev?.htsTargetPrice ?? null
-                            const diff = curT != null && prevT != null ? curT - prevT : null
-                            const diffPct = curT != null && prevT != null && prevT !== 0 ? (diff! / prevT) * 100 : null
-                            return { it, diff, diffPct }
-                          })
-
-                          return (
-                            <div className="space-y-2">
-                              <div className="rounded-lg bg-secondary/50 p-3">
-                                <div className="flex items-center justify-between gap-2">
-                                  <p className="text-sm font-semibold text-foreground truncate">{broker}</p>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-8 px-2 text-xs"
-                                    onClick={() => setSelectedBroker("ALL")}
-                                  >
-                                    전체로
-                                  </Button>
-                                </div>
-
-                                <div className="mt-2 grid grid-cols-2 gap-2">
-                                  <div className="rounded-md bg-background/60 p-2">
-                                    <p className="text-[11px] text-muted-foreground">리포트</p>
-                                    <p className="text-sm font-semibold text-foreground">{stat?.count ?? rows.length}건</p>
-                                  </div>
-
-                                  <div className="rounded-md bg-background/60 p-2">
-                                    <p className="text-[11px] text-muted-foreground">최근 의견</p>
-                                    <div className="mt-1">
-                                      <Badge
-                                        variant="outline"
-                                        className={cn("text-[11px]", recommendationBadgeClass(stat?.latestOpinion ?? "UNKNOWN"))}
-                                      >
-                                        {recommendationLabel(stat?.latestOpinion ?? "UNKNOWN")}
-                                      </Badge>
+                                      <span>강세점수 {formatNumber(b.bullish, 2)}</span>
                                     </div>
-                                  </div>
+                                  </button>
+                              ))}
+                            </div>
+                          </div>
+                      ) : (
+                          (() => {
+                            const broker = selectedBroker
+                            const stat = investmentOpinionStats.brokers.find((x) => x.broker === broker) ?? null
+                            const rows = investmentOpinionStats.periodItems
+                                .filter((x) => x.memberCompanyName === broker)
+                                .sort((a, b) => toYmdKey(b.stockBusinessDate).localeCompare(toYmdKey(a.stockBusinessDate)))
+                                .slice(0, 12)
 
-                                  <div className="rounded-md bg-background/60 p-2">
-                                    <p className="text-[11px] text-muted-foreground">목표가(평균/중앙)</p>
-                                    <p className="text-sm font-semibold text-foreground">
-                                      {stat?.avgTarget == null ? "-" : `${formatNumber(stat.avgTarget, 0)}원`} /{" "}
-                                      {stat?.medianTarget == null ? "-" : `${formatNumber(stat.medianTarget, 0)}원`}
-                                    </p>
-                                  </div>
+                            const deltas = rows.map((it, idx) => {
+                              const prev = rows[idx + 1]
+                              const curT = it.htsTargetPrice
+                              const prevT = prev?.htsTargetPrice ?? null
+                              const diff = curT != null && prevT != null ? curT - prevT : null
+                              const diffPct = curT != null && prevT != null && prevT !== 0 ? (diff! / prevT) * 100 : null
+                              return { it, diff, diffPct }
+                            })
 
-                                  <div className="rounded-md bg-background/60 p-2">
-                                    <p className="text-[11px] text-muted-foreground">상승여력(평균/중앙)</p>
-                                    <p
-                                      className={cn(
-                                        "text-sm font-semibold",
-                                        (stat?.avgUpsidePct ?? 0) >= 0 ? "text-chart-1" : "text-chart-2",
-                                      )}
-                                    >
-                                      {stat?.avgUpsidePct == null
-                                        ? "-"
-                                        : `${stat.avgUpsidePct >= 0 ? "+" : ""}${formatNumber(stat.avgUpsidePct, 2)}%`}{" "}
-                                      /{" "}
-                                      {stat?.medianUpsidePct == null
-                                        ? "-"
-                                        : `${formatNumber(stat.medianUpsidePct, 2)}%`}
-                                    </p>
-                                  </div>
-                                </div>
+                            return (
+                                <div className="space-y-2">
+                                  <div className="rounded-lg bg-secondary/50 p-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <p className="text-sm font-semibold text-foreground truncate">{broker}</p>
+                                      <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-8 px-2 text-xs"
+                                          onClick={() => setSelectedBroker("ALL")}
+                                      >
+                                        전체로
+                                      </Button>
+                                    </div>
 
-                                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                                  <span>BUY {stat?.buy ?? 0}</span>
-                                  <span>HOLD {stat?.hold ?? 0}</span>
-                                  <span>SELL {stat?.sell ?? 0}</span>
-                                  <span>업그레이드 {stat?.upgrades ?? 0}</span>
-                                  <span>다운그레이드 {stat?.downgrades ?? 0}</span>
-                                  <span>목표↑ {stat?.targetUp ?? 0}</span>
-                                  <span>목표↓ {stat?.targetDown ?? 0}</span>
-                                  <span>강세점수 {stat ? formatNumber(stat.bullish, 2) : "-"}</span>
-                                </div>
-                              </div>
+                                    <div className="mt-2 grid grid-cols-2 gap-2">
+                                      <div className="rounded-md bg-background/60 p-2">
+                                        <p className="text-[11px] text-muted-foreground">리포트</p>
+                                        <p className="text-sm font-semibold text-foreground">{stat?.count ?? rows.length}건</p>
+                                      </div>
 
-                              <div className="rounded-lg border border-border overflow-hidden">
-                                <div className="px-3 py-2 bg-secondary/30">
-                                  <p className="text-xs text-muted-foreground">최근 리포트 (최대 12개)</p>
-                                </div>
-
-                                <div className="divide-y divide-border">
-                                  {deltas.map(({ it, diff, diffPct }, idx) => (
-                                    <div key={`${toYmdKey(it.stockBusinessDate)}-${idx}`} className="px-3 py-2">
-                                      <div className="flex items-center justify-between gap-2">
-                                        <div className="min-w-0">
-                                          <p className="text-sm font-medium text-foreground">{formatYmd(it.stockBusinessDate)}</p>
-                                          <p className="text-[11px] text-muted-foreground truncate">
-                                            {it.investmentOpinionRaw || recommendationLabel(it.investmentOpinion)}
-                                          </p>
-                                        </div>
-
-                                        <div className="flex flex-col items-end gap-1">
+                                      <div className="rounded-md bg-background/60 p-2">
+                                        <p className="text-[11px] text-muted-foreground">최근 의견</p>
+                                        <div className="mt-1">
                                           <Badge
-                                            variant="outline"
-                                            className={cn("text-[11px]", recommendationBadgeClass(it.investmentOpinion))}
+                                              variant="outline"
+                                              className={cn("text-[11px]", recommendationBadgeClass(stat?.latestOpinion ?? "UNKNOWN"))}
                                           >
-                                            {recommendationLabel(it.investmentOpinion)}
+                                            {recommendationLabel(stat?.latestOpinion ?? "UNKNOWN")}
                                           </Badge>
-
-                                          <div className="text-right">
-                                            <p className="text-[11px] text-muted-foreground">
-                                              목표가 {it.htsTargetPrice == null ? "-" : `${formatNumber(it.htsTargetPrice, 0)}원`}
-                                            </p>
-                                            <p className={cn("text-[11px]", (diff ?? 0) >= 0 ? "text-chart-1" : "text-chart-2")}>
-                                              {diff == null
-                                                ? "변화 -"
-                                                : `${diff >= 0 ? "+" : ""}${formatNumber(diff, 0)}원${
-                                                  diffPct == null ? "" : ` (${diffPct >= 0 ? "+" : ""}${formatNumber(diffPct, 2)}%)`
-                                                }`}
-                                            </p>
-                                          </div>
                                         </div>
                                       </div>
+
+                                      <div className="rounded-md bg-background/60 p-2">
+                                        <p className="text-[11px] text-muted-foreground">목표가(평균/중앙)</p>
+                                        <p className="text-sm font-semibold text-foreground">
+                                          {stat?.avgTarget == null ? "-" : `${formatNumber(stat.avgTarget, 0)}원`} /{" "}
+                                          {stat?.medianTarget == null ? "-" : `${formatNumber(stat.medianTarget, 0)}원`}
+                                        </p>
+                                      </div>
+
+                                      <div className="rounded-md bg-background/60 p-2">
+                                        <p className="text-[11px] text-muted-foreground">상승여력(평균/중앙)</p>
+                                        <p
+                                            className={cn(
+                                                "text-sm font-semibold",
+                                                (stat?.avgUpsidePct ?? 0) >= 0 ? "text-chart-1" : "text-chart-2",
+                                            )}
+                                        >
+                                          {stat?.avgUpsidePct == null
+                                              ? "-"
+                                              : `${stat.avgUpsidePct >= 0 ? "+" : ""}${formatNumber(stat.avgUpsidePct, 2)}%`}{" "}
+                                          /{" "}
+                                          {stat?.medianUpsidePct == null
+                                              ? "-"
+                                              : `${formatNumber(stat.medianUpsidePct, 2)}%`}
+                                        </p>
+                                      </div>
                                     </div>
-                                  ))}
+
+                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                                      <span>BUY {stat?.buy ?? 0}</span>
+                                      <span>HOLD {stat?.hold ?? 0}</span>
+                                      <span>SELL {stat?.sell ?? 0}</span>
+                                      <span>업그레이드 {stat?.upgrades ?? 0}</span>
+                                      <span>다운그레이드 {stat?.downgrades ?? 0}</span>
+                                      <span>목표↑ {stat?.targetUp ?? 0}</span>
+                                      <span>목표↓ {stat?.targetDown ?? 0}</span>
+                                      <span>강세점수 {stat ? formatNumber(stat.bullish, 2) : "-"}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="rounded-lg border border-border overflow-hidden">
+                                    <div className="px-3 py-2 bg-secondary/30">
+                                      <p className="text-xs text-muted-foreground">최근 리포트 (최대 12개)</p>
+                                    </div>
+
+                                    <div className="divide-y divide-border">
+                                      {deltas.map(({ it, diff, diffPct }, idx) => (
+                                          <div key={`${toYmdKey(it.stockBusinessDate)}-${idx}`} className="px-3 py-2">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <div className="min-w-0">
+                                                <p className="text-sm font-medium text-foreground">{formatYmd(it.stockBusinessDate)}</p>
+                                                <p className="text-[11px] text-muted-foreground truncate">
+                                                  {it.investmentOpinionRaw || recommendationLabel(it.investmentOpinion)}
+                                                </p>
+                                              </div>
+
+                                              <div className="flex flex-col items-end gap-1">
+                                                <Badge
+                                                    variant="outline"
+                                                    className={cn("text-[11px]", recommendationBadgeClass(it.investmentOpinion))}
+                                                >
+                                                  {recommendationLabel(it.investmentOpinion)}
+                                                </Badge>
+
+                                                <div className="text-right">
+                                                  <p className="text-[11px] text-muted-foreground">
+                                                    목표가 {it.htsTargetPrice == null ? "-" : `${formatNumber(it.htsTargetPrice, 0)}원`}
+                                                  </p>
+                                                  <p className={cn("text-[11px]", (diff ?? 0) >= 0 ? "text-chart-1" : "text-chart-2")}>
+                                                    {diff == null
+                                                        ? "변화 -"
+                                                        : `${diff >= 0 ? "+" : ""}${formatNumber(diff, 0)}원${
+                                                            diffPct == null ? "" : ` (${diffPct >= 0 ? "+" : ""}${formatNumber(diffPct, 2)}%)`
+                                                        }`}
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                      ))}
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                            </div>
-                          )
-                        })()
+                            )
+                          })()
                       )}
 
                       <p className="text-[11px] text-muted-foreground">
                         목표가/의견은 증권사 리포트 기반이며, 실제 수익을 보장하지 않아요. (기간/중복제거/정렬 옵션에 따라 통계가 달라질 수 있어요)
                       </p>
                     </>
-                  )}
+                )}
+              </CardContent>
+            </Card>
+
+            {/* News Analysis */}
+            <div className="grid sm:grid-cols-2 gap-4 mt-4">
+              <NewsAnalysis stockName={stock.name} />
+              <NewsCluster stockName={stock.name} />
+            </div>
+
+
+            {/* Peers */}
+            {peers.length > 0 && (
+              <Card className="bg-card border-border">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold">같은 섹터 종목</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {peers.map((p) => {
+                      const pct = p.changeRate ?? p.changePercent
+                      const up = (pct ?? 0) >= 0
+                      return (
+                        <Link
+                          key={p.symbol}
+                          href={`/stocks/${p.symbol}`}
+                          className="flex flex-col items-center p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                        >
+                          <span className="font-medium text-foreground">{p.name}</span>
+                          <span className={cn("text-lg font-bold mt-1", up ? "text-chart-1" : "text-chart-2")}>
+                            {pct == null ? "-" : `${up ? "+" : ""}${pct.toFixed(2)}%`}
+                          </span>
+                        </Link>
+                      )
+                    })}
+                  </div>
                 </CardContent>
               </Card>
+            )}
+          </div>
+
+          {/* Right */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-20 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pb-6">
+              <StockFinancialPanel data={stockCurrentPrice} isLoading={isStockCurrentPriceLoading} />
             </div>
           </div>
         </div>
