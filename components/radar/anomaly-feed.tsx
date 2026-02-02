@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { AlertTriangle, TrendingUp, TrendingDown, Volume2, Zap, Clock } from "lucide-react"
+import { AlertTriangle, TrendingUp, TrendingDown, Volume2, Zap, Clock, Lock } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -35,105 +35,139 @@ export function AnomalyFeed({ market, timeRange }: AnomalyFeedProps) {
   const filteredAnomalies = filter === "all" ? anomalies : anomalies.filter((a) => a.type === filter)
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-chart-4" />
-            실시간 이상징후
-          </CardTitle>
-          <Badge variant="secondary" className="text-xs">
-            {filteredAnomalies.length}건
-          </Badge>
-        </div>
+    <div className="relative">
+      {/* ✅ 전체 불투명 + 클릭 막기 */}
+      <div className="pointer-events-none select-none opacity-50">
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-chart-4" />
+                실시간 이상징후
+              </CardTitle>
+              <Badge variant="secondary" className="text-xs">
+                {filteredAnomalies.length}건
+              </Badge>
+            </div>
 
-        {/* Filter Tabs */}
-        <div className="flex gap-1 mt-3 flex-wrap">
-          <button
-            onClick={() => setFilter("all")}
-            className={cn(
-              "px-2.5 py-1 text-xs rounded-md transition-colors",
-              filter === "all"
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground hover:text-foreground",
-            )}
-          >
-            전체
-          </button>
-          {(Object.keys(typeConfig) as AnomalyType[]).map((type) => {
-            const config = typeConfig[type]
-            return (
+            {/* Filter Tabs */}
+            <div className="flex gap-1 mt-3 flex-wrap">
               <button
-                key={type}
-                onClick={() => setFilter(type)}
+                onClick={() => setFilter("all")}
                 className={cn(
                   "px-2.5 py-1 text-xs rounded-md transition-colors",
-                  filter === type
+                  filter === "all"
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-muted-foreground hover:text-foreground",
                 )}
               >
-                {config.label}
+                전체
               </button>
-            )
-          })}
-        </div>
-      </CardHeader>
-
-      <CardContent className="p-0">
-        <ScrollArea className="h-[400px]">
-          <div className="space-y-2 p-4 pt-0">
-            {filteredAnomalies.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>감지된 이상징후가 없습니다</p>
-              </div>
-            ) : (
-              filteredAnomalies.map((anomaly) => {
-                const config = typeConfig[anomaly.type]
-                const Icon = config.icon
-
+              {(Object.keys(typeConfig) as AnomalyType[]).map((type) => {
+                const config = typeConfig[type]
                 return (
-                  <Link
-                    key={anomaly.id}
-                    href={`/stock/${anomaly.ticker}`}
-                    className="group block relative rounded-lg border border-border bg-secondary/50 p-3 hover:bg-secondary transition-colors"
+                  <button
+                    key={type}
+                    onClick={() => setFilter(type)}
+                    className={cn(
+                      "px-2.5 py-1 text-xs rounded-md transition-colors",
+                      filter === type
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:text-foreground",
+                    )}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className={cn("mt-0.5 p-1.5 rounded-md bg-secondary", config.color)}>
-                        <Icon className="h-4 w-4" />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">{anomaly.name}</span>
-                          <span className="text-xs text-muted-foreground">{anomaly.ticker}</span>
-                          <Badge
-                            variant="outline"
-                            className={cn("text-[10px] px-1.5 py-0", severityConfig[anomaly.severity])}
-                          >
-                            {anomaly.severity === "high" ? "긴급" : anomaly.severity === "medium" ? "주의" : "정보"}
-                          </Badge>
-                        </div>
-
-                        <p className="text-sm text-muted-foreground mt-0.5">{anomaly.description}</p>
-
-                        <div className="flex items-center gap-3 mt-2">
-                          <span className={cn("text-sm font-bold", config.color)}>{anomaly.value}</span>
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {anomaly.time}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
+                    {config.label}
+                  </button>
                 )
-              })
-            )}
+              })}
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-0">
+            <ScrollArea className="h-[400px]">
+              <div className="space-y-2 p-4 pt-0">
+                {filteredAnomalies.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>감지된 이상징후가 없습니다</p>
+                  </div>
+                ) : (
+                  filteredAnomalies.map((anomaly) => {
+                    const config = typeConfig[anomaly.type]
+                    const Icon = config.icon
+
+                    return (
+                      <Link
+                        key={anomaly.id}
+                        href={`/stock/${anomaly.ticker}`}
+                        className="group block relative rounded-lg border border-border bg-secondary/50 p-3 hover:bg-secondary transition-colors"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={cn("mt-0.5 p-1.5 rounded-md bg-secondary", config.color)}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-foreground">{anomaly.name}</span>
+                              <span className="text-xs text-muted-foreground">{anomaly.ticker}</span>
+                              <Badge
+                                variant="outline"
+                                className={cn("text-[10px] px-1.5 py-0", severityConfig[anomaly.severity])}
+                              >
+                                {anomaly.severity === "high" ? "긴급" : anomaly.severity === "medium" ? "주의" : "정보"}
+                              </Badge>
+                            </div>
+
+                            <p className="text-sm text-muted-foreground mt-0.5">{anomaly.description}</p>
+
+                            <div className="flex items-center gap-3 mt-2">
+                              <span className={cn("text-sm font-bold", config.color)}>{anomaly.value}</span>
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {anomaly.time}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  })
+                )}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ✅ 곧 출시 오버레이 (명확하게) */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-full max-w-sm rounded-xl border border-border bg-background/90 backdrop-blur p-4 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="h-9 w-9 rounded-lg bg-secondary flex items-center justify-center">
+              <Lock className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">곧 출시</p>
+              <p className="text-[12px] text-muted-foreground">
+                현재는 미리보기입니다. 출시 후 실시간 감지 및 알림이 활성화됩니다.
+              </p>
+            </div>
           </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Badge variant="outline" className="text-[11px] bg-secondary/30">
+              Coming Soon
+            </Badge>
+            <Badge variant="outline" className="text-[11px] bg-secondary/30">
+              Preview Mode
+            </Badge>
+            <Badge variant="outline" className="text-[11px] bg-secondary/30">
+              Alerts 예정
+            </Badge>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

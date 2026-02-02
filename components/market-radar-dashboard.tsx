@@ -1,23 +1,17 @@
 "use client"
 
-import { Header } from "@/components/radar/header"
-import { MarketOverview } from "@/components/radar/market-overview"
-import { AnomalyFeed } from "@/components/radar/anomaly-feed"
-import { PriceMovers } from "@/components/radar/price-movers"
-import { AlertSettings } from "@/components/radar/alert-settings"
-import { NotificationToast } from "@/components/radar/notification-toast"
-import { SectorIndices } from "@/components/radar/sector-indices"
-import { MarketNewsFeed } from "@/components/radar/market-news"
-import { useMarketState } from "@/lib/store"
-import {RealtimeNews} from "@/components/radar/realtime-news";
-import {ThemeExplorer} from "@/components/radar/theme-explorer-ㅁㄴㅇㄹ";
+import {MarketOverview} from "@/components/radar/market-overview"
+import {AnomalyFeed} from "@/components/radar/anomaly-feed"
+import {PriceMovers} from "@/components/radar/price-movers"
+import {NotificationToast} from "@/components/radar/notification-toast"
+import {SectorIndices} from "@/components/radar/sector-indices"
+import {useMarketState} from "@/lib/store"
 
 export function MarketRadarDashboard() {
   const { market, timeRange, setMarket } = useMarketState()
 
   return (
     <div className="min-h-screen">
-      <Header />
 
       {/* ✅ 모바일 여백 축소 */}
       <main className="px-3 sm:px-4 py-4 sm:py-6">
@@ -35,7 +29,7 @@ export function MarketRadarDashboard() {
             <div className="space-y-6 lg:sticky lg:top-20">
               {/*<MarketNewsFeed />*/}
               <AnomalyFeed market={market} timeRange={timeRange} />
-              <AlertSettings />
+              {/*<AlertSettings />*/}
             </div>
           </div>
         </div>

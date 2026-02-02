@@ -128,7 +128,7 @@ export default function SettingsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <Link href="/" className="shrink-0">
+                    <Link href="/public" className="shrink-0">
                       <Button variant="ghost" size="icon" className="h-9 w-9 rounded-2xl">
                         <ArrowLeft className="h-4 w-4" />
                       </Button>
