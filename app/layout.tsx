@@ -6,6 +6,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import {ThemeProvider} from "@/components/theme-provider"
 import "./globals.css"
 import QueryProvider from "@/providers/query-provider";
+import Script from "next/script";
 
 const _geist = Geist({subsets: ["latin"]})
 const _geistMono = Geist_Mono({subsets: ["latin"]})
@@ -51,6 +52,11 @@ export default function RootLayout({
       <QueryProvider>
         <ThemeProvider>
           {children}
+            <Script
+                src="//t1.daumcdn.net/kas/static/ba.min.js"
+                strategy="afterInteractive"
+                async
+            />
         </ThemeProvider>
       </QueryProvider>
       <Analytics/>
