@@ -46,7 +46,7 @@ export function MarketRadarDashboard() {
                 </div>
             </main>
 
-            <NotificationToast/>
+            {/*<NotificationToast/>*/}
         </div>
     )
 }

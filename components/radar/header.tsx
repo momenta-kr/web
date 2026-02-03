@@ -114,14 +114,14 @@ export function Header() {
                 <SearchCommand />
                 <ThemeToggle />
 
-                <Button variant="ghost" size="icon" className="relative" onClick={() => setShowNotifications(true)}>
-                  <Bell className="h-5 w-5" />
-                  {highSeverityCount > 0 && (
-                      <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center bg-destructive text-destructive-foreground">
-                        {highSeverityCount}
-                      </Badge>
-                  )}
-                </Button>
+                {/*<Button variant="ghost" size="icon" className="relative" onClick={() => setShowNotifications(true)}>*/}
+                {/*  <Bell className="h-5 w-5" />*/}
+                {/*  {highSeverityCount > 0 && (*/}
+                {/*      <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center bg-destructive text-destructive-foreground">*/}
+                {/*        {highSeverityCount}*/}
+                {/*      </Badge>*/}
+                {/*  )}*/}
+                {/*</Button>*/}
 
                 <Link href="/settings" className="hidden md:block">
                   <Button variant="ghost" size="icon">
@@ -137,38 +137,38 @@ export function Header() {
         <MobileSearchDialog />
 
         {/* Notifications Dialog */}
-        <Dialog open={showNotifications} onOpenChange={setShowNotifications}>
-          <DialogContent className="bg-card border-border max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                최근 알림
-              </DialogTitle>
-            </DialogHeader>
+        {/*<Dialog open={showNotifications} onOpenChange={setShowNotifications}>*/}
+        {/*  <DialogContent className="bg-card border-border max-w-md">*/}
+        {/*    <DialogHeader>*/}
+        {/*      <DialogTitle className="flex items-center gap-2">*/}
+        {/*        <Bell className="h-5 w-5" />*/}
+        {/*        최근 알림*/}
+        {/*      </DialogTitle>*/}
+        {/*    </DialogHeader>*/}
 
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {anomalies.slice(0, 10).map((anomaly) => (
-                  <div
-                      key={anomaly.id}
-                      className={cn(
-                          "p-3 rounded-lg border",
-                          anomaly.severity === "high"
-                              ? "border-chart-2/30 bg-chart-2/10"
-                              : anomaly.severity === "medium"
-                                  ? "border-chart-4/30 bg-chart-4/10"
-                                  : "border-border bg-secondary/50"
-                      )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-foreground">{anomaly.name}</span>
-                      <span className="text-xs text-muted-foreground">{anomaly.time}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">{anomaly.description}</p>
-                  </div>
-              ))}
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/*    <div className="space-y-2 max-h-[400px] overflow-y-auto">*/}
+        {/*      {anomalies.slice(0, 10).map((anomaly) => (*/}
+        {/*          <div*/}
+        {/*              key={anomaly.id}*/}
+        {/*              className={cn(*/}
+        {/*                  "p-3 rounded-lg border",*/}
+        {/*                  anomaly.severity === "high"*/}
+        {/*                      ? "border-chart-2/30 bg-chart-2/10"*/}
+        {/*                      : anomaly.severity === "medium"*/}
+        {/*                          ? "border-chart-4/30 bg-chart-4/10"*/}
+        {/*                          : "border-border bg-secondary/50"*/}
+        {/*              )}*/}
+        {/*          >*/}
+        {/*            <div className="flex items-center justify-between">*/}
+        {/*              <span className="font-medium text-foreground">{anomaly.name}</span>*/}
+        {/*              <span className="text-xs text-muted-foreground">{anomaly.time}</span>*/}
+        {/*            </div>*/}
+        {/*            <p className="text-sm text-muted-foreground mt-1">{anomaly.description}</p>*/}
+        {/*          </div>*/}
+        {/*      ))}*/}
+        {/*    </div>*/}
+        {/*  </DialogContent>*/}
+        {/*</Dialog>*/}
       </>
   )
 }
