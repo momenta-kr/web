@@ -110,8 +110,6 @@ function FlagBadge({ on, label }: { on: boolean; label: string }) {
 }
 
 export default function StockFinancialPanel({ data, isLoading, className }: Props) {
-  console.log("@@@@@@@@@@@@@@@@")
-  console.log(data)
   const d = data
 
   const isUp = (d?.changeFromPreviousDay ?? 0) > 0
