@@ -1341,8 +1341,8 @@ export function RealtimeNews() {
 
                     <div
                         className={cn(
-                            "absolute inset-x-0 bottom-0 h-[85svh] border-t border-border shadow-2xl bg-background flex flex-col",
-                            "sm:inset-y-0 sm:right-0 sm:left-auto sm:bottom-auto sm:h-full sm:w-[520px] sm:border-t-0 sm:border-l",
+                            "absolute inset-x-0 bottom-0 h-[85svh] border-t border-border shadow-2xl bg-background flex flex-col rounded-t-2xl",
+                            "sm:inset-y-0 sm:right-0 sm:left-auto sm:bottom-auto sm:h-full sm:w-[520px] sm:border-t-0 sm:border-l sm:rounded-t-none",
                         )}
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -1428,106 +1428,65 @@ export function RealtimeNews() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto">
-                            <div className="p-4 space-y-2">
-                                {topStocksVisible.map((s) => {
-                                    const label = s.name || s.ticker
-                                    const isActive = stockFocus === s.ticker || stockFocus === s.name
+                            {topStocksVisible.length > 0 ? (
+                                <table className="w-full text-xs">
+                                    <thead className="sticky top-0 bg-background/95 backdrop-blur border-b border-border/60">
+                                        <tr>
+                                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">종목</th>
+                                            <th className="text-right px-3 py-2.5 font-medium text-muted-foreground w-[60px]">건수</th>
+                                            <th className="text-right px-3 py-2.5 font-medium text-muted-foreground w-[50px]">호재</th>
+                                            <th className="text-right px-3 py-2.5 font-medium text-muted-foreground w-[50px]">악재</th>
+                                            <th className="text-right px-4 py-2.5 font-medium text-muted-foreground w-[50px]">중립</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border/50">
+                                        {topStocksVisible.map((s) => {
+                                            const label = s.name || s.ticker
+                                            const isActive = stockFocus === s.ticker || stockFocus === s.name
 
-                                    return (
-                                        <button
-                                            key={s.ticker || s.name}
-                                            type="button"
-                                            onClick={() => {
-                                                setStockFocus(s.ticker || s.name)
-                                                setTopOpen(false)
-                                            }}
-                                            className={cn(
-                                                "w-full border border-border/70 p-4 text-left transition",
-                                                "bg-transparent hover:bg-muted/30",
-                                                isActive && "border-foreground/25",
-                                            )}
-                                        >
-                                            <div className="flex items-center justify-between gap-2">
-                                                <div className="min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <span
-                                                            className="text-base font-semibold truncate">{label}</span>
-                                                        <Badge variant="outline" className="text-[11px] tabular-nums">
-                                                            {s.total}건
-                                                        </Badge>
-                                                        {s.ticker && <span
-                                                            className="text-[11px] text-muted-foreground tabular-nums">{s.ticker}</span>}
-                                                    </div>
-                                                    <div className="mt-1 text-[11px] text-muted-foreground">
-                                                        호재 {s.positive} · 악재 {s.negative} · 중립 {s.neutral}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-3">
-                                                <SentimentStackBar
-                                                    positive={s.positive}
-                                                    negative={s.negative}
-                                                    neutral={s.neutral}
-                                                    total={s.total}
-                                                    showNumbers={showTopNumbers}
-                                                    onClickPositive={() => {
+                                            return (
+                                                <tr
+                                                    key={s.ticker || s.name}
+                                                    onClick={() => {
                                                         setStockFocus(s.ticker || s.name)
-                                                        setSentimentFilter("positive")
                                                         setTopOpen(false)
                                                     }}
-                                                    onClickNegative={() => {
-                                                        setStockFocus(s.ticker || s.name)
-                                                        setSentimentFilter("negative")
-                                                        setTopOpen(false)
-                                                    }}
-                                                    onClickNeutral={() => {
-                                                        setStockFocus(s.ticker || s.name)
-                                                        setSentimentFilter("neutral")
-                                                        setTopOpen(false)
-                                                    }}
-                                                />
-                                            </div>
-                                        </button>
-                                    )
-                                })}
+                                                    className={cn(
+                                                        "cursor-pointer transition hover:bg-muted/30",
+                                                        isActive && "bg-muted/25",
+                                                    )}
+                                                >
+                                                    <td className="px-4 py-3">
+                                                        <div className="font-medium truncate max-w-[200px]">{label}</div>
+                                                        {s.ticker && s.name && (
+                                                            <div className="text-[10px] text-muted-foreground tabular-nums">{s.ticker}</div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-3 py-3 text-right tabular-nums font-medium">{s.total}</td>
+                                                    <td className="px-3 py-3 text-right tabular-nums text-red-500">{s.positive}</td>
+                                                    <td className="px-3 py-3 text-right tabular-nums text-blue-500">{s.negative}</td>
+                                                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{s.neutral}</td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <div className="p-10 text-center text-sm text-muted-foreground">
+                                    조건에 맞는 종목이 없어요.
+                                </div>
+                            )}
 
-                                {topStocksForPanel.length === 0 && (
-                                    <div
-                                        className="border border-border/70 p-10 text-center text-sm text-muted-foreground">
-                                        조건에 맞는 종목이 없어요.
-                                    </div>
-                                )}
-
-                                {topStocksForPanel.length > topLimit && (
-                                    <div className="pt-2 flex items-center justify-center">
-                                        <Button type="button" variant="secondary" className="h-10"
-                                                onClick={() => setTopLimit((v) => v + 120)}>
-                                            더 보기
-                                            ({Math.min(topLimit, topStocksForPanel.length).toLocaleString("ko-KR")} /{" "}
-                                            {topStocksForPanel.length.toLocaleString("ko-KR")})
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div
-                            className="p-4 border-t border-border flex items-center justify-between gap-2 pb-[env(safe-area-inset-bottom)]">
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                className="h-10"
-                                onClick={() => {
-                                    setStockFocus(null)
-                                    setSentimentFilter("all")
-                                }}
-                            >
-                                종목/감성 해제
-                            </Button>
-                            <Button type="button" className="h-10" onClick={() => setTopOpen(false)}>
-                                닫기
-                            </Button>
+                            {topStocksForPanel.length > topLimit && (
+                                <div className="p-4 flex items-center justify-center border-t border-border/60">
+                                    <Button type="button" variant="secondary" className="h-10"
+                                            onClick={() => setTopLimit((v) => v + 120)}>
+                                        더 보기
+                                        ({Math.min(topLimit, topStocksForPanel.length).toLocaleString("ko-KR")} /{" "}
+                                        {topStocksForPanel.length.toLocaleString("ko-KR")})
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
