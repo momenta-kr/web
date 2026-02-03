@@ -6,9 +6,10 @@ type Props = {
     unit: string
     width: number
     height: number
+    className?: string
 }
 
-export default function KakaoAdFit({ unit, width, height }: Props) {
+export default function KakaoAdFit({ unit, width, height, className }: Props) {
     const containerRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -38,5 +39,5 @@ export default function KakaoAdFit({ unit, width, height }: Props) {
         }
     }, [unit, width, height])
 
-    return <div ref={containerRef} style={{ width, height }} />
+    return <div ref={containerRef} style={{ width, height }} className={className} />
 }
