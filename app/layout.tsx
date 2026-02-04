@@ -4,6 +4,7 @@ import {Geist, Geist_Mono} from "next/font/google"
 import {Analytics} from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import {ThemeProvider} from "@/components/theme-provider"
+import {Footer} from "@/components/footer"
 import "./globals.css"
 import QueryProvider from "@/providers/query-provider";
 import Script from "next/script";
@@ -48,15 +49,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className="font-sans antialiased bg-white dark:bg-background">
+      <body className="font-sans antialiased bg-white dark:bg-background min-h-screen flex flex-col">
       <QueryProvider>
         <ThemeProvider>
-          {children}
-            <Script
-                src="//t1.daumcdn.net/kas/static/ba.min.js"
-                strategy="afterInteractive"
-                async
-            />
+          <main className="flex-1">
+            {children}
+          </main>
+          <Footer />
+          <Script
+              src="//t1.daumcdn.net/kas/static/ba.min.js"
+              strategy="afterInteractive"
+              async
+          />
         </ThemeProvider>
       </QueryProvider>
       <Analytics/>
