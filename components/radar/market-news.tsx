@@ -148,7 +148,7 @@ export function MarketNewsFeed() {
                     <div className="flex items-center justify-between mt-2 gap-2">
                       <div className="flex flex-wrap gap-1 flex-1 min-w-0">
                         {news.relatedStocks.slice(0, 3).map((stock) => (
-                          <Link key={stock.ticker} href={`/stock/${stock.ticker}`}>
+                          <Link key={stock.ticker} href={`/stocks/${stock.ticker}`}>
                             <Badge variant="outline" className="text-xs hover:bg-primary/10 cursor-pointer">
                               {stock.name}
                             </Badge>

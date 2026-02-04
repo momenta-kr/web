@@ -2,11 +2,10 @@
 
 // NOTE
 // - 목표가 추세 차트: Recharts 사용 (npm i recharts)
-// - “이전 방문 이후 신규 리포트”는 localStorage 기반
+// - "이전 방문 이후 신규 리포트"는 localStorage 기반
 // - 아래 import 경로들은 프로젝트 구조에 맞게 조정해줘
 
 import Link from "next/link"
-import {useParams} from "next/navigation"
 import React, {useEffect, useMemo, useState} from "react"
 import {
   CartesianGrid,
@@ -564,11 +563,17 @@ function TargetPriceTrendChart({data}: { data: TargetTrendPoint[] }) {
 }
 
 // =========================
+// Props
+// =========================
+interface StockDetailPageProps {
+  stockCode: string
+}
+
+// =========================
 // Page
 // =========================
-export default function StockDetailPage() {
-  const params = useParams()
-  const symbol = params.symbol as string
+export default function StockDetailPage({ stockCode }: StockDetailPageProps) {
+  const symbol = stockCode
 
   const {data: stockCurrentPrice, isLoading: isStockCurrentPriceLoading} = useStockCurrentPrice(symbol)
 

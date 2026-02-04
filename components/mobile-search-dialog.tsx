@@ -30,7 +30,7 @@ const MobileSearchDialog = () => {
             {results.map((stock) => (
               <Link
                 key={stock.ticker}
-                href={`/stock/${stock.ticker}`}
+                href={`/stocks/${stock.ticker}`}
                 onClick={() => {
                   setIsOpen(false)
                   setQuery("")

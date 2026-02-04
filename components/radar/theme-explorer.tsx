@@ -440,7 +440,7 @@ export function ThemeExplorer() {
             {stocks.map((s) => (
                 <Link
                     key={s.stockCode}
-                    href={`/stock/${s.stockCode}`}
+                    href={`/stocks/${s.stockCode}`}
                     className="px-4 py-3 flex items-center justify-between gap-3 transition hover:bg-muted/30"
                 >
                   <div className="min-w-0">

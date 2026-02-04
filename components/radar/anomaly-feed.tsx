@@ -99,7 +99,7 @@ export function AnomalyFeed({ market, timeRange }: AnomalyFeedProps) {
                     return (
                       <Link
                         key={anomaly.id}
-                        href={`/stock/${anomaly.ticker}`}
+                        href={`/stocks/${anomaly.ticker}`}
                         className="group block relative rounded-lg border border-border bg-secondary/50 p-3 hover:bg-secondary transition-colors"
                       >
                         <div className="flex items-start gap-3">

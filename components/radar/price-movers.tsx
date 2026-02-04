@@ -98,7 +98,7 @@ function MobileCardList({
       {!isLoading && !isError && items.length > 0 && (
         <div className="divide-y divide-border">
           {items.map((s, idx) => {
-            const href = `/stock/${s.shortStockCode}`
+            const href = `/stocks/${s.shortStockCode}`
             const rate = s.changeRateFromPrevDay
 
             return (
@@ -220,7 +220,7 @@ function MoversTable({
           {!isLoading &&
             !isError &&
             items.map((s, idx) => {
-              const href = `/stock/${s.shortStockCode}`
+              const href = `/stocks/${s.shortStockCode}`
               const rate = s.changeRateFromPrevDay
 
               return (

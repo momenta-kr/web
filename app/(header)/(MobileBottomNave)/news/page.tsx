@@ -1,10 +1,11 @@
-import React from 'react';
-import {RealtimeNews} from "@/components/radar/realtime-news";
+import { Metadata } from "next"
+import { RealtimeNews } from "@/components/radar/realtime-news"
 
-const NewsPage = () => {
-  return (
-    <RealtimeNews />
-  );
-};
+export const metadata: Metadata = {
+  title: "실시간 뉴스 | Market Radar",
+  description: "주식 시장 관련 실시간 뉴스 피드",
+}
 
-export default NewsPage;
+export default function NewsPage() {
+  return <RealtimeNews />
+}

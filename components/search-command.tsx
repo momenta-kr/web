@@ -54,7 +54,7 @@ export function SearchCommand() {
     (symbol: string) => {
       setOpen(false)
       setQuery("")
-      router.push(`/stock/${symbol}`)
+      router.push(`/stocks/${symbol}`)
     },
     [router],
   )

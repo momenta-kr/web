@@ -1,4 +1,3 @@
-// app/stocks/[symbol]/loading.tsx
 import React from "react"
 import Link from "next/link"
 import { ArrowLeft, Bell, Share2, Star } from "lucide-react"
