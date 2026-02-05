@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { SearchCommand } from "@/components/search-command"
 import MobileSearchDialog from "@/components/mobile-search-dialog"
+import Image from "next/image";
 
 export function Header() {
   const pathname = usePathname()
@@ -72,13 +73,12 @@ export function Header() {
           <div className="px-4">
             <div className="flex h-16 items-center justify-between gap-4">
               {/* Logo & Title */}
-              <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                  <Activity className="h-5 w-5 text-primary-foreground" />
+              <Link href="/" className="flex items-center gap-1 hover:opacity-80 transition-opacity">
+                <div className="items-center justify-center">
+                  <Image src="/logo.png" alt="logo" width={32} height={32} className="object-contain" />
                 </div>
                 <div className="hidden sm:block">
                   <h1 className="text-lg font-semibold text-foreground">모멘타</h1>
-                  <p className="text-xs text-muted-foreground">실시간 이상징후 감지</p>
                 </div>
               </Link>
 

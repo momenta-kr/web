@@ -5,7 +5,7 @@ import type { NextRequest } from "next/server"
 const PUBLIC_PATHS = [
     "/manifest.webmanifest",
     "/sw.js",
-    "/apple-icon.png",
+    "/apple-logo.png",
     "/icon-192x192.png",
     "/icon-512x512.png",
     "/favicon.ico",
