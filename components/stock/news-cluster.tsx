@@ -7,14 +7,16 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { generateNewsCluster } from "@/lib/mock-data"
-import { Network, TrendingUp, TrendingDown, Minus, ExternalLink } from "lucide-react"
+import { Network, TrendingUp, TrendingDown, Minus, ExternalLink, Sparkles } from "lucide-react"
 
 interface NewsClusterProps {
   stockName: string
   className?: string
+  /** 곧 출시 표시/비활성화 */
+  comingSoon?: boolean
 }
 
-export function NewsCluster({ stockName, className }: NewsClusterProps) {
+export function NewsCluster({ stockName, className, comingSoon = true }: NewsClusterProps) {
   const clusters = useMemo(() => generateNewsCluster(stockName), [stockName])
 
   const getSentimentConfig = (sentiment: "positive" | "negative" | "neutral") => {
@@ -44,15 +46,32 @@ export function NewsCluster({ stockName, className }: NewsClusterProps) {
   }
 
   return (
-    <Card className={cn("bg-card border-border", className)}>
-      <CardHeader className="pb-3">
+    <Card className={cn("relative overflow-hidden bg-card border-border", className)} aria-disabled={comingSoon}>
+      {/* ✅ 곧 출시 오버레이 (불투명 배경 + 블러) */}
+      {comingSoon && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/85 backdrop-blur-sm">
+          <div className="text-center px-6">
+            <Badge className="gap-1.5 rounded-full bg-primary/10 text-primary border border-primary/30">
+              <Sparkles className="h-3.5 w-3.5" />
+              곧 출시
+            </Badge>
+            <p className="mt-2 text-sm text-muted-foreground">
+              관련 뉴스 테마/클러스터 기능은 현재 준비 중입니다.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <CardHeader className={cn("pb-3", comingSoon && "opacity-40")}>
         <div className="flex items-center gap-2">
           <Network className="h-5 w-5 text-primary" />
           <CardTitle className="text-base font-semibold">관련 뉴스 테마</CardTitle>
         </div>
         <p className="text-xs text-muted-foreground mt-1">현재 시장에서 주목받는 테마와 연관 종목을 분석합니다</p>
       </CardHeader>
-      <CardContent className="space-y-3">
+
+      {/* ✅ 오버레이 뒤 콘텐츠는 살짝 흐리게 */}
+      <CardContent className={cn("space-y-3", comingSoon && "opacity-40")}>
         {clusters.map((cluster, idx) => {
           const config = getSentimentConfig(cluster.sentiment)
           const Icon = config.icon

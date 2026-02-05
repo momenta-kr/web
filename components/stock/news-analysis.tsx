@@ -1,8 +1,6 @@
 "use client"
 
-import { useState } from "react"
-
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -25,9 +23,11 @@ import {
 interface NewsAnalysisProps {
   stockName: string
   className?: string
+  /** 곧 출시 표시/비활성화 */
+  comingSoon?: boolean
 }
 
-export function NewsAnalysis({ stockName, className }: NewsAnalysisProps) {
+export function NewsAnalysis({ stockName, className, comingSoon = true }: NewsAnalysisProps) {
   const news = useMemo(() => generateNewsItems(stockName), [stockName])
   const [filter, setFilter] = useState<"all" | "positive" | "negative">("all")
 
@@ -52,7 +52,22 @@ export function NewsAnalysis({ stockName, className }: NewsAnalysisProps) {
   }
 
   return (
-    <Card className={cn("bg-card border-border", className)}>
+    <Card className={cn("relative overflow-hidden bg-card border-border", className)} aria-disabled={comingSoon}>
+      {/* ✅ 곧 출시 오버레이 (불투명 배경 + 블러) */}
+      {comingSoon && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/85 backdrop-blur-sm">
+          <div className="text-center px-6">
+            <Badge className="gap-1.5 rounded-full bg-primary/10 text-primary border border-primary/30">
+              <Sparkles className="h-3.5 w-3.5" />
+              곧 출시
+            </Badge>
+            <p className="mt-2 text-sm text-muted-foreground">
+              AI 뉴스 분석 기능은 현재 준비 중입니다.
+            </p>
+          </div>
+        </div>
+      )}
+
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -69,7 +84,9 @@ export function NewsAnalysis({ stockName, className }: NewsAnalysisProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+
+      {/* ✅ 오버레이 뒤 콘텐츠는 살짝 흐리게(선택) */}
+      <CardContent className={cn("space-y-4", comingSoon && "opacity-40")}>
         {/* Filter Tabs */}
         <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
           <TabsList className="grid w-full grid-cols-3 bg-secondary">
@@ -166,7 +183,6 @@ export function NewsAnalysis({ stockName, className }: NewsAnalysisProps) {
                             </Badge>
                           ))}
                         </div>
-                        {/* 원문 보기 버튼 */}
                         <Button
                           variant="outline"
                           size="sm"
