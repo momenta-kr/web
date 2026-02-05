@@ -5,6 +5,7 @@ import {AnomalyFeed} from "@/components/radar/anomaly-feed"
 import {PriceMovers} from "@/components/radar/price-movers"
 import {NotificationToast} from "@/components/radar/notification-toast"
 import {SectorIndices} from "@/components/radar/sector-indices"
+import {VolumeRanking} from "@/components/radar/volume-ranking"
 import {useMarketState} from "@/lib/store"
 import KakaoAdFit from "@/components/kakao-ad-fit";
 import {useIsMobile} from "@/hooks/use-mobile";
@@ -37,6 +38,7 @@ export function MarketRadarDashboard() {
                     <div className="lg:col-span-3 min-w-0">
                         {/* ✅ 모바일에서는 sticky/스크롤 박스 OFF, lg부터 ON */}
                         <div className="space-y-6 lg:sticky lg:top-20">
+                            <VolumeRanking />
                             {/*<MarketNewsFeed />*/}
                             <AnomalyFeed market={market} timeRange={timeRange}/>
                             {/*<AlertSettings />*/}
