@@ -329,8 +329,8 @@ export function SectorIndices() {
   return (
     <TooltipProvider delayDuration={150}>
       <div className="min-w-0 w-full">
-        {/* 헤더(카드 없이) */}
-        <div className="flex items-center gap-2 mb-3 min-w-0">
+        {/* ✅ 헤더: 모바일에서 세로로(공간 확보), sm 이상은 가로 */}
+        <div className="flex flex-col items-start gap-1 mb-3 min-w-0 sm:flex-row sm:items-center sm:gap-2">
           <TrendingUp className="h-4 w-4 text-primary shrink-0" />
           <div className="text-sm font-semibold truncate">업종별 지수</div>
         </div>
@@ -343,7 +343,8 @@ export function SectorIndices() {
         )}
 
         {!isLoading && !isError && treemapData.length > 0 && (
-          <div className="w-full min-w-0 h-[380px] sm:h-[460px]">
+          // ✅ 모바일에서 "세로로 길게" (vh + min/max로 안정화), sm 이상은 기존 높이
+          <div className="w-full min-w-0 h-[80vh] min-h-[600px] max-h-[820px] sm:h-[460px] sm:min-h-0 sm:max-h-none">
             <ResponsiveContainer width="100%" height="100%" minWidth={280} minHeight={240}>
               <Treemap
                 data={treemapData}
