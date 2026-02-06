@@ -6,5 +6,6 @@ export function useIndustryIndexItem() {
     queryKey: ["industry-index-item"],
     queryFn: () => fetchIndustryIndexItem(),
     retry: 1,
+    refetchInterval: 5_000
   });
 }

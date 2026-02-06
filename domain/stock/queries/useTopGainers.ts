@@ -6,5 +6,6 @@ export function useTopGainers() {
     queryKey: ["top-gainers"],
     queryFn: () => fetchTopGainers(),
     retry: 1,
+    refetchInterval: 5_000
   });
 }

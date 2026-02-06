@@ -8,5 +8,6 @@ export function useIndexPrice() {
     queryKey: ["index-price"],
     queryFn: () => fetchIndexPrice(),
     retry: 1,
+    refetchInterval: 5_000
   });
 }

@@ -6,5 +6,6 @@ export function useSearchDefault() {
     queryKey: ["search-default"],
     queryFn: () => fetchSearchDefault(),
     retry: 1,
+    refetchInterval: 5_000
   })
 }

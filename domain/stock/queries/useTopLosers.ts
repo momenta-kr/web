@@ -7,5 +7,6 @@ export function useTopLosers() {
     queryKey: ["top-losers"],
     queryFn: () => fetchTopLosers(),
     retry: 1,
+    refetchInterval: 5_000
   });
 }

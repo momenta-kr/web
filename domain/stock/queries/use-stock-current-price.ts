@@ -7,7 +7,7 @@ export function useStockCurrentPrice(stockCode: string) {
     queryKey: ["stock-current-price", stockCode],
     queryFn: () => fetchStockCurrentPrice(stockCode),
     retry: 1,
-    staleTime: 60_000, // 3초 정도 (원하는대로)
-    refetchInterval: 60_000, // 실시간 느낌 원하면
+    staleTime: 5_000, // 3초 정도 (원하는대로)
+    refetchInterval: 5_000, // 실시간 느낌 원하면
   })
 }

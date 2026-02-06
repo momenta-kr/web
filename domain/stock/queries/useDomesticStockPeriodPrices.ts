@@ -9,7 +9,7 @@ export function useDomesticStockPeriodPrices(params: {
     queryKey: ["domestic-stock-period-prices", params.symbol, params.periodType],
     queryFn: () => fetchDomesticStockPeriodPrices(params),
     retry: 1,
-    staleTime: 10_000,
+    staleTime: 5_000,
     refetchOnWindowFocus: false,
     // ✅ placeholderData 사용
     placeholderData: (previousData) => {
