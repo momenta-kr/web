@@ -111,14 +111,7 @@ export function VolumeRanking() {
 
                     {/* ✅ DESKTOP: 좁은 영역(2.5/10) 최적화 카드 */}
                     <div className="hidden md:block pb-1">
-                        <Card className="rounded-xl">
-                            <CardHeader className="px-3 py-2">
-                                <div className="flex items-center justify-between">
-                                    <div className="text-xs font-semibold text-foreground">거래량 TOP 20</div>
-                                    <div className="text-[11px] text-muted-foreground">실시간</div>
-                                </div>
-                            </CardHeader>
-
+                        <Card className="rounded-xl py-2">
                             <CardContent className="p-0">
                                 <div className="divide-y divide-border">
                                     {displayRankings.map((item: any, idx: number) => {
