@@ -1816,10 +1816,11 @@ export default function StockDetailPage({ stockCode }: StockDetailPageProps) {
             </Card>
 
             {/* News Analysis */}
-            <div className="grid sm:grid-cols-2 gap-4 mt-4">
-              <NewsAnalysis stockName={stock.name}/>
-              <NewsCluster stockName={stock.name}/>
-            </div>
+            <StockFinancialPanel data={stockCurrentPrice} isLoading={isStockCurrentPriceLoading}/>
+
+            {/*<div className="grid sm:grid-cols-2 gap-4 mt-4">*/}
+            {/*  <NewsCluster stockName={stock.name}/>*/}
+            {/*</div>*/}
 
 
             {/* Peers */}
@@ -1855,7 +1856,8 @@ export default function StockDetailPage({ stockCode }: StockDetailPageProps) {
           {/* Right */}
           <div className="lg:col-span-1">
             <div className="sticky top-20 space-y-6 sm:max-h-[calc(100vh-6rem)] sm:overflow-y-auto pb-6">
-              <StockFinancialPanel data={stockCurrentPrice} isLoading={isStockCurrentPriceLoading}/>
+              <NewsAnalysis stockCode={stockCode} stockName={stock.name} comingSoon={false} />
+
             </div>
           </div>
         </div>
