@@ -1,316 +1,400 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, type ReactNode } from "react"
 import Link from "next/link"
-import { ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown } from "lucide-react"
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  TrendingUp,
+  TrendingDown,
+  Volume2,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Market } from "@/lib/types"
 import { useTopGainers } from "@/domain/stock/queries/useTopGainers"
 import { useTopLosers } from "@/domain/stock/queries/useTopLosers"
+import { useVolumeRanking } from "@/domain/stock/queries/useVolumeRanking"
 import type { Fluctuation } from "@/domain/stock/types/fluctuation.model"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
 interface PriceMoversProps {
-    market: Market
+  market: Market
 }
 
 function formatNumber(n: number) {
-    return n.toLocaleString("ko-KR")
+  return n.toLocaleString("ko-KR")
 }
 
-/** ✅ 핵심: rate 실제 부호 기준으로 + 붙이기 (tone 기준 X) */
+/** ✅ rate 실제 부호 기준으로 + 붙이기 */
 function formatSignedPercent(rate: number, digits = 2) {
-    if (!Number.isFinite(rate)) return "-"
-    const EPS = 1e-9
-    const v = Math.abs(rate) < EPS ? 0 : rate
-    return `${v > 0 ? "+" : ""}${v.toFixed(digits)}%`
+  if (!Number.isFinite(rate)) return "-"
+  const EPS = 1e-9
+  const v = Math.abs(rate) < EPS ? 0 : rate
+  return `${v > 0 ? "+" : ""}${v.toFixed(digits)}%`
 }
 
-function TableHeadCell({
-                           children,
-                           className,
-                       }: {
-    children: React.ReactNode
-    className?: string
-}) {
-    return (
-        <th
-            className={cn(
-                "px-3 py-2 text-left text-xs font-medium text-muted-foreground bg-muted/40",
-                className,
-            )}
-        >
-            {children}
-        </th>
-    )
+/** ✅ 주식앱스럽게: ▲ 1,500 / ▼ 1,500 (0이면 0) */
+function formatDeltaArrow(delta: number) {
+  if (!Number.isFinite(delta)) return "-"
+  if (delta > 0) return `▲ ${formatNumber(Math.abs(delta))}`
+  if (delta < 0) return `▼ ${formatNumber(Math.abs(delta))}`
+  return "0"
 }
 
-/** ✅ 모바일 카드 리스트 */
-function MobileCardList({
-                            title,
-                            icon,
-                            tone,
-                            items,
-                            isLoading,
-                            isError,
-                        }: {
-    title: string
-    icon: React.ReactNode
-    tone: "up" | "down"
-    items: Fluctuation[]
-    isLoading: boolean
-    isError: boolean
+/** ✅ 거래량/거래대금 축약 */
+const compactNumber = (n: number) => {
+  const abs = Math.abs(n)
+  if (abs >= 1_0000_0000) return `${(n / 1_0000_0000).toFixed(1)}억`
+  if (abs >= 1_0000) return `${(n / 1_0000).toFixed(0)}만`
+  return n.toLocaleString("ko-KR")
+}
+
+/** ✅ volume ranking에서 전일대비(원) 값이 있을 수도 있어서 유연하게 추출 */
+function extractDeltaAmount(item: any): number | undefined {
+  const candidates = [
+    item?.changeFromPrevDay,
+    item?.prevDayChangePrice,
+    item?.prevDayChange,
+    item?.changePrice,
+    item?.priceChange,
+    item?.change,
+    item?.diff,
+  ]
+
+  for (const v of candidates) {
+    if (typeof v === "number" && Number.isFinite(v)) return v
+    if (typeof v === "string" && v.trim() !== "") {
+      const n = Number(v)
+      if (Number.isFinite(n)) return n
+    }
+  }
+  return undefined
+}
+
+// ✅ 상승=빨강 / 하락=파랑
+const UP_TEXT = "text-red-500 dark:text-red-400"
+const DOWN_TEXT = "text-blue-500 dark:text-blue-400"
+const UP_BADGE = "bg-red-500/12 text-red-600 dark:bg-red-500/18 dark:text-red-400"
+const DOWN_BADGE = "bg-blue-500/12 text-blue-600 dark:bg-blue-500/18 dark:text-blue-400"
+
+// ✅ 전일대비(▲/▼)도 등락률 색과 동일하게 (상승=빨강, 하락=파랑)
+const UP_DELTA = UP_TEXT
+const DOWN_DELTA = DOWN_TEXT
+const FLAT_DELTA = "text-muted-foreground"
+
+function CardShell({
+                     title,
+                     icon,
+                     subtitle,
+                     children,
+                     className,
+                   }: {
+  title: string
+  icon: ReactNode
+  subtitle: string
+  children: ReactNode
+  className?: string
 }) {
-    return (
-        <div className="rounded-xl border border-border">
-            <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border">
-                <div className="flex items-center gap-2">
-                    {icon}
-                    <span className="text-sm font-semibold text-foreground">{title}</span>
-                    <span className="text-xs text-muted-foreground">TOP 10</span>
-                </div>
-            </div>
-
-            {isLoading && <div className="px-3 py-8 text-center text-sm text-muted-foreground">불러오는 중…</div>}
-            {!isLoading && isError && (
-                <div className="px-3 py-8 text-center text-sm text-destructive">데이터를 불러오지 못했어요.</div>
-            )}
-            {!isLoading && !isError && items.length === 0 && (
-                <div className="px-3 py-8 text-center text-sm text-muted-foreground">표시할 데이터가 없어요.</div>
-            )}
-
-            {!isLoading && !isError && items.length > 0 && (
-                <div className="divide-y divide-border">
-                    {items.map((s, idx) => {
-                        const href = `/stocks/${s.shortStockCode}`
-                        const rate = s.changeRateFromPrevDay
-
-                        // ✅ 행 단위로 실제 부호를 따라가게 (상승 리스트에 음수가 섞여도 안전)
-                        const rowUp = Number.isFinite(rate) ? rate >= 0 : tone === "up"
-                        const RateIcon = rowUp ? ArrowUpRight : ArrowDownRight
-
-                        return (
-                            <Link
-                                key={`m:${tone}:${s.shortStockCode}`}
-                                href={href}
-                                className="block px-3 py-3 hover:bg-muted/40 transition-colors"
-                            >
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                        <div className="flex items-center gap-2 min-w-0">
-                      <span
-                          className={cn(
-                              "inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold shrink-0",
-                              rowUp ? "bg-chart-1/20 text-chart-1" : "bg-chart-2/20 text-chart-2",
-                          )}
-                      >
-                        {idx + 1}
-                      </span>
-                                            <span className="font-semibold text-foreground truncate">{s.stockName}</span>
-                                            <span className="text-xs text-muted-foreground shrink-0">{s.shortStockCode}</span>
-                                        </div>
-
-                                        <div className="mt-1 text-xs text-muted-foreground">
-                                            {formatNumber(s.currentPrice)}원{" "}
-                                            <span className="opacity-80">
-                        ({s.changeFromPrevDay >= 0 ? "▲" : "▼"}
-                                                {formatNumber(Math.abs(s.changeFromPrevDay))})
-                      </span>
-                                        </div>
-                                    </div>
-
-                                    <div
-                                        className={cn(
-                                            "shrink-0 inline-flex items-center gap-1 text-sm font-semibold tabular-nums",
-                                            rowUp ? "text-chart-1" : "text-chart-2",
-                                        )}
-                                    >
-                                        <RateIcon className="h-4 w-4" />
-                                        <span>{formatSignedPercent(rate)}</span>
-                                    </div>
-                                </div>
-                            </Link>
-                        )
-                    })}
-                </div>
-            )}
+  return (
+    <Card className={cn("min-w-0 rounded-xl", className)}>
+      <CardHeader className="px-3 py-2">
+        <div className="flex items-center gap-2 min-w-0">
+          {icon}
+          <div className="min-w-0 flex items-baseline gap-2">
+            <h3 className="text-xs font-semibold text-foreground truncate">{title}</h3>
+            <span className="text-[11px] text-muted-foreground shrink-0">{subtitle}</span>
+          </div>
         </div>
-    )
+      </CardHeader>
+      <CardContent className="p-0">{children}</CardContent>
+    </Card>
+  )
 }
 
-function MoversTable({
-                         title,
-                         icon,
-                         tone,
-                         items,
-                         isLoading,
-                         isError,
-                         kind,
-                     }: {
-    title: string
-    icon: React.ReactNode
-    tone: "up" | "down"
-    items: Fluctuation[]
-    isLoading: boolean
-    isError: boolean
-    kind: "gainers" | "losers"
+function StateBlock({
+                      isLoading,
+                      isError,
+                      isEmpty,
+                    }: {
+  isLoading: boolean
+  isError: boolean
+  isEmpty: boolean
 }) {
-    return (
-        <div className="min-w-0 flex-1">
-            <div className="mb-2 flex items-center gap-2">
-                {icon}
-                <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-                <span className="text-xs text-muted-foreground">TOP 10</span>
-            </div>
+  if (isLoading) return <div className="px-3 py-8 text-center text-xs text-muted-foreground">불러오는 중…</div>
+  if (isError) return <div className="px-3 py-8 text-center text-xs text-destructive">데이터를 불러오지 못했어요.</div>
+  if (isEmpty) return <div className="px-3 py-8 text-center text-xs text-muted-foreground">표시할 데이터가 없어요.</div>
+  return null
+}
 
-            <div className="w-full overflow-x-auto bg-background">
-                <table className="w-full min-w-[420px] border-collapse bg-background">
-                    <thead>
-                    <tr>
-                        <TableHeadCell className="w-[56px]">#</TableHeadCell>
-                        <TableHeadCell>종목</TableHeadCell>
-                        <TableHeadCell className="text-right">현재가</TableHeadCell>
-                        <TableHeadCell className="text-right">등락률</TableHeadCell>
-                    </tr>
-                    </thead>
+function RankBadge({ rank, up }: { rank: number; up: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-bold tabular-nums shrink-0",
+        up ? UP_BADGE : DOWN_BADGE
+      )}
+    >
+      {rank}
+    </span>
+  )
+}
 
-                    <tbody>
-                    {isLoading && (
-                        <tr>
-                            <td colSpan={4} className="px-3 py-10 text-center text-sm text-muted-foreground">
-                                불러오는 중…
-                            </td>
-                        </tr>
-                    )}
+function RowLink({
+                   href,
+                   rank,
+                   name,
+                   subline,
+                   price,
+                   rate,
+                   deltaAmount,
+                   up,
+                 }: {
+  href: string
+  rank: number
+  name: string
+  subline?: string
+  price: string
+  rate: number
+  deltaAmount?: number
+  up: boolean
+}) {
+  const RateIcon = up ? ArrowUpRight : ArrowDownRight
+  const delta = typeof deltaAmount === "number" ? deltaAmount : undefined
 
-                    {!isLoading && isError && (
-                        <tr>
-                            <td colSpan={4} className="px-3 py-10 text-center text-sm text-destructive">
-                                데이터를 불러오지 못했어요.
-                            </td>
-                        </tr>
-                    )}
+  const deltaClass =
+    delta == null
+      ? "text-muted-foreground"
+      : delta > 0
+        ? UP_DELTA
+        : delta < 0
+          ? DOWN_DELTA
+          : FLAT_DELTA
 
-                    {!isLoading && !isError && items.length === 0 && (
-                        <tr>
-                            <td colSpan={4} className="px-3 py-10 text-center text-sm text-muted-foreground">
-                                표시할 데이터가 없어요.
-                            </td>
-                        </tr>
-                    )}
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "block px-3 py-2 transition-colors",
+        "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      )}
+    >
+      <div className="grid grid-cols-[20px_1fr_auto] items-center gap-2 min-w-0">
+        <RankBadge rank={rank} up={up} />
 
-                    {!isLoading &&
-                        !isError &&
-                        items.map((s, idx) => {
-                            const href = `/stocks/${s.shortStockCode}`
-                            const rate = s.changeRateFromPrevDay
-
-                            // ✅ 행 단위 부호/아이콘/색상
-                            const rowUp = Number.isFinite(rate) ? rate >= 0 : tone === "up"
-                            const RateIcon = rowUp ? ArrowUpRight : ArrowDownRight
-
-                            return (
-                                <tr key={`${kind}:${s.shortStockCode}`}>
-                                    <td colSpan={4} className="p-0">
-                                        <Link
-                                            href={href}
-                                            className={cn(
-                                                "block w-full transition-colors",
-                                                "hover:bg-muted/40 focus:bg-muted/40 focus:outline-none",
-                                            )}
-                                        >
-                                            <div className="grid items-center grid-cols-[56px_1fr_auto_auto]">
-                                                <div className="px-3 py-2 text-sm text-muted-foreground tabular-nums">{idx + 1}</div>
-
-                                                <div className="px-3 py-2 min-w-0">
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        <span className="font-semibold text-foreground truncate hover:underline">{s.stockName}</span>
-                                                        <span className="text-xs text-muted-foreground shrink-0">{s.shortStockCode}</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="px-3 py-2 text-sm tabular-nums whitespace-nowrap text-right text-foreground">
-                                                    {formatNumber(s.currentPrice)}원
-                                                    <span className="ml-2 hidden lg:inline text-xs text-muted-foreground">
-                              ({s.changeFromPrevDay >= 0 ? "▲" : "▼"}
-                                                        {formatNumber(Math.abs(s.changeFromPrevDay))})
-                            </span>
-                                                </div>
-
-                                                <div
-                                                    className={cn(
-                                                        "px-3 py-2 text-sm tabular-nums whitespace-nowrap text-right font-medium",
-                                                        rowUp ? "text-chart-1" : "text-chart-2",
-                                                    )}
-                                                >
-                            <span className="inline-flex items-center justify-end gap-1 w-full">
-                              <RateIcon className="h-4 w-4" />
-                              <span>{formatSignedPercent(rate)}</span>
-                            </span>
-                                                </div>
-                                            </div>
-                                        </Link>
-                                    </td>
-                                </tr>
-                            )
-                        })}
-                    </tbody>
-                </table>
-            </div>
+        <div className="min-w-0">
+          <div className="text-xs font-semibold text-foreground truncate">{name}</div>
+          {subline ? (
+            <div className="mt-0.5 text-[11px] text-muted-foreground truncate">{subline}</div>
+          ) : null}
         </div>
-    )
+
+        {/* ✅ 오른쪽: 가격 + (↗/↘ % + ▲/▼ 원) */}
+        <div className="text-right tabular-nums shrink-0 min-w-[74px]">
+          <div className="text-xs font-semibold text-foreground leading-none">{price}</div>
+
+          {/* ✅ 폭 좁아도 가로스크롤 안 생기게 flex-wrap */}
+          <div className="mt-1 flex flex-wrap items-center justify-end gap-x-1 gap-y-0.5 leading-none">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 text-[11px] font-semibold",
+                up ? UP_TEXT : DOWN_TEXT
+              )}
+            >
+              <RateIcon className="h-3.5 w-3.5" />
+              <span>{formatSignedPercent(rate)}</span>
+            </span>
+
+            {delta != null ? (
+              <>
+                <span className="text-[10px] text-muted-foreground">·</span>
+                <span
+                  className={cn(
+                    "text-[11px] font-semibold tabular-nums whitespace-nowrap",
+                    deltaClass
+                  )}
+                  aria-label="전일대비"
+                  title="전일대비"
+                >
+                  {formatDeltaArrow(delta)}
+                </span>
+              </>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+function MoversCard({
+                      title,
+                      icon,
+                      tone,
+                      items,
+                      isLoading,
+                      isError,
+                    }: {
+  title: string
+  icon: ReactNode
+  tone: "up" | "down"
+  items: Fluctuation[]
+  isLoading: boolean
+  isError: boolean
+}) {
+  const empty = !isLoading && !isError && items.length === 0
+
+  return (
+    <CardShell title={title} icon={icon} subtitle="TOP 20">
+      <StateBlock isLoading={isLoading} isError={isError} isEmpty={empty} />
+
+      {!isLoading && !isError && items.length > 0 ? (
+        <div className="divide-y divide-border">
+          {items.map((s, idx) => {
+            const href = `/stocks/${s.shortStockCode}`
+            const rate = s.changeRateFromPrevDay
+            const delta = s.changeFromPrevDay
+
+            const up = Number.isFinite(rate) ? rate >= 0 : tone === "up"
+
+            return (
+              <RowLink
+                key={`${title}:${s.shortStockCode}`}
+                href={href}
+                rank={idx + 1}
+                name={s.stockName}
+                subline={undefined}
+                price={`${formatNumber(s.currentPrice)}원`}
+                rate={rate}
+                deltaAmount={delta}
+                up={up}
+              />
+            )
+          })}
+        </div>
+      ) : null}
+    </CardShell>
+  )
+}
+
+function VolumeCard({
+                      items,
+                      isLoading,
+                      isError,
+                    }: {
+  items: any[]
+  isLoading: boolean
+  isError: boolean
+}) {
+  const empty = !isLoading && !isError && items.length === 0
+
+  return (
+    <CardShell
+      title="거래량"
+      icon={<Volume2 className="h-4 w-4 text-muted-foreground" />}
+      subtitle="TOP 20"
+    >
+      <StateBlock isLoading={isLoading} isError={isError} isEmpty={empty} />
+
+      {!isLoading && !isError && items.length > 0 ? (
+        <div className="divide-y divide-border">
+          {items.map((item: any, idx: number) => {
+            const rank = item.rank ?? idx + 1
+            const rate = Number(item.prevDayChangeRate ?? 0)
+            const up = Number.isFinite(rate) ? rate >= 0 : true
+            const deltaAmount = extractDeltaAmount(item)
+
+            const volume =
+              typeof item.volume === "number"
+                ? item.volume
+                : typeof item.tradeVolume === "number"
+                  ? item.tradeVolume
+                  : undefined
+
+            const tradeAmount =
+              typeof item.tradeAmount === "number"
+                ? item.tradeAmount
+                : typeof item.tradeValue === "number"
+                  ? item.tradeValue
+                  : undefined
+
+            const sublineParts: string[] = []
+            if (typeof volume === "number") sublineParts.push(`거래량 ${compactNumber(volume)}`)
+            if (typeof tradeAmount === "number") sublineParts.push(`거래대금 ${compactNumber(tradeAmount)}`)
+            const subline = sublineParts.join(" · ")
+
+            return (
+              <RowLink
+                key={`vol:${item.stockCode ?? idx}`}
+                href={`/stocks/${item.stockCode}`}
+                rank={rank}
+                name={item.stockName}
+                subline={subline || undefined}
+                price={`${item.currentPrice?.toLocaleString?.() ?? item.currentPrice}원`}
+                rate={rate}
+                deltaAmount={deltaAmount}
+                up={up}
+              />
+            )
+          })}
+        </div>
+      ) : null}
+    </CardShell>
+  )
 }
 
 export function PriceMovers({ market }: PriceMoversProps) {
-    const { data: topGainers, isLoading: isLoadingG, isError: isErrorG } = useTopGainers()
-    const { data: topLosers, isLoading: isLoadingL, isError: isErrorL } = useTopLosers()
+  const { data: topGainers, isLoading: isLoadingG, isError: isErrorG } = useTopGainers()
+  const { data: topLosers, isLoading: isLoadingL, isError: isErrorL } = useTopLosers()
+  const { data: volumeRankings, isLoading: isLoadingV, isError: isErrorV } = useVolumeRanking()
 
-    const gainers = useMemo(() => ((topGainers ?? []) as Fluctuation[]).slice(0, 10), [topGainers])
-    const losers = useMemo(() => ((topLosers ?? []) as Fluctuation[]).slice(0, 10), [topLosers])
+  const gainers = useMemo(() => ((topGainers ?? []) as Fluctuation[]).slice(0, 20), [topGainers])
+  const losers = useMemo(() => ((topLosers ?? []) as Fluctuation[]).slice(0, 20), [topLosers])
+  const volumes = useMemo(() => (volumeRankings ?? []).slice(0, 20), [volumeRankings])
 
-    return (
-        <TooltipProvider delayDuration={150}>
-            <div className="w-full">
-                <div className="md:hidden space-y-3">
-                    <MobileCardList
-                        title="상승"
-                        icon={<TrendingUp className="h-4 w-4 text-chart-1" />}
-                        tone="up"
-                        items={gainers}
-                        isLoading={isLoadingG}
-                        isError={isErrorG}
-                    />
-                    <MobileCardList
-                        title="하락"
-                        icon={<TrendingDown className="h-4 w-4 text-chart-2" />}
-                        tone="down"
-                        items={losers}
-                        isLoading={isLoadingL}
-                        isError={isErrorL}
-                    />
-                </div>
+  return (
+    <TooltipProvider delayDuration={150}>
+      <div className="w-full">
+        <div className="md:hidden space-y-3">
+          <MoversCard
+            title="상승"
+            icon={<TrendingUp className={cn("h-4 w-4", UP_TEXT)} />}
+            tone="up"
+            items={gainers}
+            isLoading={isLoadingG}
+            isError={isErrorG}
+          />
+          <MoversCard
+            title="하락"
+            icon={<TrendingDown className={cn("h-4 w-4", DOWN_TEXT)} />}
+            tone="down"
+            items={losers}
+            isLoading={isLoadingL}
+            isError={isErrorL}
+          />
+          <VolumeCard items={volumes} isLoading={isLoadingV} isError={isErrorV} />
+        </div>
 
-                <div className="hidden md:flex flex-row gap-8">
-                    <MoversTable
-                        title="상승"
-                        icon={<TrendingUp className="h-4 w-4 text-chart-1" />}
-                        tone="up"
-                        items={gainers}
-                        isLoading={isLoadingG}
-                        isError={isErrorG}
-                        kind="gainers"
-                    />
-                    <MoversTable
-                        title="하락"
-                        icon={<TrendingDown className="h-4 w-4 text-chart-2" />}
-                        tone="down"
-                        items={losers}
-                        isLoading={isLoadingL}
-                        isError={isErrorL}
-                        kind="losers"
-                    />
-                </div>
-            </div>
-        </TooltipProvider>
-    )
+        <div className="hidden md:grid grid-cols-3 gap-4">
+          <MoversCard
+            title="상승"
+            icon={<TrendingUp className={cn("h-4 w-4", UP_TEXT)} />}
+            tone="up"
+            items={gainers}
+            isLoading={isLoadingG}
+            isError={isErrorG}
+          />
+          <MoversCard
+            title="하락"
+            icon={<TrendingDown className={cn("h-4 w-4", DOWN_TEXT)} />}
+            tone="down"
+            items={losers}
+            isLoading={isLoadingL}
+            isError={isErrorL}
+          />
+          <VolumeCard items={volumes} isLoading={isLoadingV} isError={isErrorV} />
+        </div>
+      </div>
+    </TooltipProvider>
+  )
 }

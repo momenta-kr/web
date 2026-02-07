@@ -38,7 +38,7 @@ export function MarketRadarDashboard() {
                     <div className="lg:col-span-3 min-w-0">
                         {/* ✅ 모바일에서는 sticky/스크롤 박스 OFF, lg부터 ON */}
                         <div className="space-y-6 lg:sticky lg:top-20">
-                            <VolumeRanking />
+                            {/*<VolumeRanking />*/}
                             {/*<MarketNewsFeed />*/}
                             <AnomalyFeed market={market} timeRange={timeRange}/>
                             {/*<AlertSettings />*/}
