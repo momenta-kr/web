@@ -289,11 +289,10 @@ export function SectorIndices() {
   const [hoveredCode, setHoveredCode] = useState<string | null>(null)
 
   const treemapData: TreemapNode[] = useMemo(() => {
-    const arr = [...(data ?? [])]
+    const base = [...(data ?? [])]
 
-    arr.sort((a, b) => num((b as any).changeRate) - num((a as any).changeRate))
-
-    return arr
+    // ✅ 1) 먼저 노드로 변환하면서 size 계산
+    const nodes = base
       .map((item) => {
         const changeRate = num((item as any).changeRate)
         const tradeAmountRatio = num((item as any).tradeAmountRatio)
@@ -321,9 +320,22 @@ export function SectorIndices() {
           accumulatedVolume,
           volumeRatio,
           currentIndexPrice,
-        }
+        } satisfies TreemapNode
       })
       .filter((x) => x.name && x.code && Number.isFinite(x.size))
+
+    // ✅ 2) "제일 큰 사이즈"가 배열의 첫 요소가 되게 정렬
+    //    (Recharts treemap은 입력 순서 영향이 있어, 이렇게 하면 큰 타일이 좌상단부터 시작하는 경우가 대부분 안정적으로 나옴)
+    nodes.sort((a, b) => {
+      const d = b.size - a.size
+      if (Math.abs(d) > 1e-12) return d
+      // tie-breaker: 변화율 큰 것 우선 → 그래도 같으면 이름으로 고정
+      const d2 = Math.abs(b.changeRate) - Math.abs(a.changeRate)
+      if (Math.abs(d2) > 1e-12) return d2
+      return a.name.localeCompare(b.name, "ko-KR")
+    })
+
+    return nodes
   }, [data, sortKey])
 
   return (
